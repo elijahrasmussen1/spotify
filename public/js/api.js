@@ -54,6 +54,33 @@ const API = {
     return this._fetch(`/api/albums/${id}`, { method: 'DELETE' });
   },
 
+  /* ── Playlists ───────────────────────────────────────────────────── */
+  getPlaylists() {
+    return this._fetch('/api/playlists');
+  },
+  createPlaylist() {
+    return this._fetch('/api/playlists', { method: 'POST' });
+  },
+  getPlaylist(id) {
+    return this._fetch(`/api/playlists/${id}`);
+  },
+  updatePlaylist(id, formData) {
+    return this._fetch(`/api/playlists/${id}`, { method: 'PATCH', body: formData });
+  },
+  deletePlaylist(id) {
+    return this._fetch(`/api/playlists/${id}`, { method: 'DELETE' });
+  },
+  addSongToPlaylist(playlistId, songId) {
+    return this._fetch(`/api/playlists/${playlistId}/songs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ songId }),
+    });
+  },
+  removeSongFromPlaylist(playlistId, songId) {
+    return this._fetch(`/api/playlists/${playlistId}/songs/${songId}`, { method: 'DELETE' });
+  },
+
   /* ── History & Search ────────────────────────────────────────────── */
   getHistory() {
     return this._fetch('/api/history');

@@ -4,6 +4,8 @@
 const _ICO = {
   music:     `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
   musicSm:   `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  musicLg:   `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  musicMd:   `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
   mic:       `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
   micSm:     `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
   disc:      `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>`,
@@ -12,6 +14,9 @@ const _ICO = {
   play:      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
   playMd:    `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
   shuffle:   `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>`,
+  dots:      `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`,
+  search:    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  pencil:    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
 };
 
 const UI = {
@@ -278,6 +283,20 @@ const UI = {
       </div>`;
     }).join('');
 
+    const soloSongs = songs.filter(s => !s.album_id);
+    const soloCards = soloSongs.map(song => {
+      const displayName = this._songDisplayName(song);
+      const coverHtml = song.cover_art
+        ? `<img src="${song.cover_art}" class="album-card-cover" alt="${this._esc(song.name)}">`
+        : `<div class="album-card-cover-placeholder">${_ICO.music}</div>`;
+      return `<div class="album-card solo-card" data-song-id="${song.id}">
+        ${coverHtml}
+        <button class="album-card-play solo-play-btn" data-song-id="${song.id}">${_ICO.play}</button>
+        <div class="album-card-name">${displayName}</div>
+        <div class="album-card-sub">${this._esc(String(song.year || ''))} • Single</div>
+      </div>`;
+    }).join('');
+
     view.innerHTML = `
       <div class="artist-hero">
         <div class="artist-hero-gradient"></div>
@@ -303,6 +322,11 @@ const UI = {
       <div class="artist-section">
         <h2 class="artist-section-title">Albums</h2>
         <div class="albums-grid">${albumCards}</div>
+      </div>` : ''}
+      ${soloCards ? `
+      <div class="artist-section">
+        <h2 class="artist-section-title">Solo Releases</h2>
+        <div class="albums-grid">${soloCards}</div>
       </div>` : ''}
     `;
 
@@ -362,7 +386,7 @@ const UI = {
         navigateTo('album', card.dataset.albumId);
       });
     });
-    view.querySelectorAll('.album-card-play').forEach(btn => {
+    view.querySelectorAll('.album-card[data-album-id] .album-card-play').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const albumId = btn.closest('.album-card').dataset.albumId;
@@ -372,6 +396,38 @@ const UI = {
           Player.play(album.songs[0]);
         }
       });
+    });
+
+    // Solo card click — play single
+    view.querySelectorAll('.solo-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.solo-play-btn')) return;
+        const songId = parseInt(card.dataset.songId);
+        const song = songs.find(s => s.id === songId);
+        if (song) { Player.setQueue([song], 0); Player.play(song); }
+      });
+    });
+    view.querySelectorAll('.solo-play-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const songId = parseInt(btn.dataset.songId);
+        const song = songs.find(s => s.id === songId);
+        if (song) { Player.setQueue([song], 0); Player.play(song); }
+      });
+    });
+
+    // Load song durations for Most Played rows
+    view.querySelectorAll('.song-list-row').forEach(row => {
+      const songId = parseInt(row.dataset.songId);
+      const song = songs.find(s => s.id === songId);
+      if (!song) return;
+      const a = new Audio();
+      a.addEventListener('loadedmetadata', () => {
+        const el = row.querySelector('.song-duration');
+        if (el) el.textContent = UI._fmt(a.duration);
+      });
+      a.src = song.file_path;
+      a.load();
     });
   },
 
@@ -591,11 +647,30 @@ const UI = {
           item.addEventListener('click', () => navigateTo('artist', item.dataset.artistId));
         });
       } else {
-        // Playlists placeholder
-        list.innerHTML = `<div class="empty-state" style="padding:20px">
-          <div class="empty-state-icon">${_ICO.phones}</div>
-          <div class="empty-state-text" style="font-size:0.82rem">No playlists yet</div>
-        </div>`;
+        // Playlists
+        const playlists = await API.getPlaylists().catch(() => []);
+        if (!playlists.length) {
+          list.innerHTML = `<div class="empty-state" style="padding:20px">
+            <div class="empty-state-icon">${_ICO.phones}</div>
+            <div class="empty-state-text" style="font-size:0.82rem">No playlists yet</div>
+          </div>`;
+          return;
+        }
+        list.innerHTML = playlists.map(p => `
+          <div class="library-item" data-playlist-id="${this._esc(String(p.id))}">
+            ${p.cover_art
+              ? `<img src="${this._esc(p.cover_art)}" class="library-item-img" alt="${this._esc(p.name)}">`
+              : `<div class="library-item-placeholder">${_ICO.musicSm}</div>`
+            }
+            <div class="library-item-info">
+              <div class="library-item-name">${this._esc(p.name)}</div>
+              <div class="library-item-sub">Playlist</div>
+            </div>
+          </div>`).join('');
+
+        list.querySelectorAll('.library-item[data-playlist-id]').forEach(item => {
+          item.addEventListener('click', () => navigateTo('playlist', item.dataset.playlistId));
+        });
       }
     } catch (e) {
       list.innerHTML = `<div class="empty-state"><div class="empty-state-text" style="font-size:0.82rem">Failed to load</div></div>`;
@@ -734,6 +809,271 @@ const UI = {
     });
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.searchable-select')) albumDropdown.classList.add('hidden');
+    });
+  },
+
+  /* ── Playlist View ────────────────────────────────────────────────── */
+  renderPlaylistView(playlist) {
+    const view = document.getElementById('playlist-view');
+    const songs = playlist.songs || [];
+
+    const coverHtml = playlist.cover_art
+      ? `<img src="${this._esc(playlist.cover_art)}" class="pl-hero-cover" alt="${this._esc(playlist.name)}">`
+      : `<div class="pl-hero-cover-placeholder">${_ICO.musicLg}</div>`;
+
+    const trackRows = songs.map((song, i) => {
+      const displayName = this._songDisplayName(song);
+      const isCurrent = Player.currentSong && Player.currentSong.id === song.id;
+      const thumb = song.cover_art
+        ? `<img src="${this._esc(song.cover_art)}" class="pl-song-cover" alt="${this._esc(song.name)}">`
+        : `<div class="pl-song-cover-placeholder">${_ICO.musicSm}</div>`;
+      return `<div class="pl-track-row" data-song-id="${song.id}">
+        <div class="pl-track-num">
+          <span class="pl-track-number ${isCurrent ? 'song-playing-indicator' : ''}">${isCurrent ? _ICO.play : i + 1}</span>
+          <span class="pl-track-play-icon">${_ICO.play}</span>
+        </div>
+        <div class="pl-track-info">
+          ${thumb}
+          <div>
+            <div class="pl-track-name ${isCurrent ? 'song-playing-indicator' : ''}">${displayName}</div>
+            <div class="pl-track-artist">${this._esc(song.artist_name || '')}</div>
+          </div>
+        </div>
+        <div class="pl-track-duration">--:--</div>
+        <button class="pl-track-remove" data-song-id="${song.id}" title="Remove from playlist">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`;
+    }).join('');
+
+    view.innerHTML = `
+      <input type="file" id="pl-cover-file" accept="image/*" style="display:none">
+      <div class="pl-hero">
+        <div class="pl-cover-wrapper" id="pl-cover-wrapper">
+          ${coverHtml}
+          <div class="pl-cover-overlay">
+            ${_ICO.pencil}
+            <span>Choose photo</span>
+          </div>
+        </div>
+        <div class="pl-hero-info">
+          <div class="pl-hero-type">Public Playlist</div>
+          <h1 class="pl-hero-title">${this._esc(playlist.name)}</h1>
+          ${songs.length > 0 ? `<div class="pl-hero-meta">${songs.length} song${songs.length !== 1 ? 's' : ''}</div>` : ''}
+        </div>
+      </div>
+      <div class="pl-actions">
+        ${songs.length > 0 ? `<button class="btn-play-green" id="pl-play-btn">${_ICO.playMd}</button>` : ''}
+        <div class="pl-dots-wrapper">
+          <button class="pl-dots-btn" id="pl-dots-btn" title="More options">${_ICO.dots}</button>
+          <div class="pl-dots-menu hidden" id="pl-dots-menu">
+            <button class="pl-dots-item" id="pl-edit-btn">Edit details</button>
+            <button class="pl-dots-item pl-dots-delete" id="pl-delete-btn">Delete</button>
+          </div>
+        </div>
+      </div>
+      ${songs.length > 0 ? `
+      <div class="pl-tracklist">
+        <div class="pl-tracklist-header">
+          <span>#</span><span>Title</span><span class="pl-dur-col">Duration</span>
+        </div>
+        ${trackRows}
+      </div>` : ''}
+      <div class="pl-find-songs ${songs.length > 0 ? 'pl-find-compact' : ''}">
+        <div class="pl-find-title">${songs.length === 0 ? "Let's find something for your playlist" : 'Find more to add'}</div>
+        <div class="pl-search-bar">
+          <div class="pl-search-icon">${_ICO.search}</div>
+          <input type="text" id="pl-search-input" class="pl-search-input" placeholder="Search for songs" autocomplete="off">
+          <button class="pl-search-close hidden" id="pl-search-close">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="pl-search-results" class="pl-search-results hidden"></div>
+      </div>
+    `;
+
+    // ── Cover click → upload immediately ─────────────────────────────
+    const coverWrapper = view.querySelector('#pl-cover-wrapper');
+    const coverFileInput = view.querySelector('#pl-cover-file');
+    coverWrapper.addEventListener('click', () => coverFileInput.click());
+    coverFileInput.addEventListener('change', async () => {
+      const file = coverFileInput.files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('coverArt', file);
+      try {
+        const updated = await API.updatePlaylist(playlist.id, fd);
+        playlist.cover_art = updated.cover_art;
+        const old = coverWrapper.querySelector('img, .pl-hero-cover-placeholder');
+        if (old) old.remove();
+        const img = document.createElement('img');
+        img.src = updated.cover_art;
+        img.className = 'pl-hero-cover';
+        img.alt = playlist.name;
+        coverWrapper.insertBefore(img, coverWrapper.firstChild);
+      } catch (e) {
+        showToast('Failed to update cover', 'error');
+      }
+    });
+
+    // ── Dots menu ─────────────────────────────────────────────────────
+    const dotsBtn = view.querySelector('#pl-dots-btn');
+    const dotsMenu = view.querySelector('#pl-dots-menu');
+    dotsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dotsMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => dotsMenu.classList.add('hidden'));
+
+    // ── Edit details ──────────────────────────────────────────────────
+    view.querySelector('#pl-edit-btn').addEventListener('click', () => {
+      dotsMenu.classList.add('hidden');
+      window._editingPlaylistId = playlist.id;
+      openModal('edit-playlist');
+      setTimeout(() => {
+        document.getElementById('ep-name-input').value = playlist.name;
+        document.getElementById('ep-desc-input').value = playlist.description || '';
+        const coverDisplay = document.getElementById('ep-cover-display');
+        if (playlist.cover_art) {
+          coverDisplay.innerHTML = `<img src="${this._esc(playlist.cover_art)}" class="ep-cover-img" alt="cover">`;
+        } else {
+          coverDisplay.innerHTML = _ICO.musicMd;
+        }
+        // Reset file input
+        document.getElementById('ep-cover-input').value = '';
+        window._epCoverFile = null;
+        // Cover click in modal
+        const epArea = document.getElementById('ep-cover-area');
+        const epInput = document.getElementById('ep-cover-input');
+        epArea.onclick = () => epInput.click();
+        epInput.onchange = () => {
+          const f = epInput.files[0];
+          if (!f) return;
+          window._epCoverFile = f;
+          const url = URL.createObjectURL(f);
+          coverDisplay.innerHTML = `<img src="${url}" class="ep-cover-img" alt="cover">`;
+        };
+      }, 20);
+    });
+
+    // ── Delete ────────────────────────────────────────────────────────
+    view.querySelector('#pl-delete-btn').addEventListener('click', async () => {
+      dotsMenu.classList.add('hidden');
+      if (!confirm(`Delete "${playlist.name}"?`)) return;
+      try {
+        await API.deletePlaylist(playlist.id);
+        showToast('Playlist deleted');
+        UI.renderLibrary('playlists');
+        navigateTo('home');
+      } catch (e) {
+        showToast('Failed to delete playlist', 'error');
+      }
+    });
+
+    // ── Play button ───────────────────────────────────────────────────
+    const playBtn = view.querySelector('#pl-play-btn');
+    if (playBtn) {
+      playBtn.addEventListener('click', () => {
+        if (songs.length) { Player.setQueue(songs, 0); Player.play(songs[0]); }
+      });
+    }
+
+    // ── Track row click ───────────────────────────────────────────────
+    view.querySelectorAll('.pl-track-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.pl-track-remove')) return;
+        const songId = parseInt(row.dataset.songId);
+        const song = songs.find(s => s.id === songId);
+        if (song) { Player.setQueue(songs, songs.indexOf(song)); Player.play(song); }
+      });
+    });
+
+    // ── Remove song ───────────────────────────────────────────────────
+    view.querySelectorAll('.pl-track-remove').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          await API.removeSongFromPlaylist(playlist.id, btn.dataset.songId);
+          const updated = await API.getPlaylist(playlist.id);
+          UI.renderPlaylistView(updated);
+        } catch (e) {
+          showToast('Failed to remove song', 'error');
+        }
+      });
+    });
+
+    // ── Song search ───────────────────────────────────────────────────
+    const searchInput = view.querySelector('#pl-search-input');
+    const searchResults = view.querySelector('#pl-search-results');
+    const searchClose = view.querySelector('#pl-search-close');
+    let plSearchTimer = null;
+
+    const clearSearch = () => {
+      searchInput.value = '';
+      searchResults.innerHTML = '';
+      searchResults.classList.add('hidden');
+      searchClose.classList.add('hidden');
+    };
+    searchClose.addEventListener('click', clearSearch);
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(plSearchTimer);
+      const q = searchInput.value.trim();
+      if (!q) { clearSearch(); return; }
+      searchClose.classList.remove('hidden');
+      plSearchTimer = setTimeout(async () => {
+        try {
+          const results = await API.search(q);
+          const hits = results.songs || [];
+          const currentIds = new Set(songs.map(s => s.id));
+          searchResults.classList.remove('hidden');
+          if (!hits.length) {
+            searchResults.innerHTML = '<div class="pl-search-none">No songs found</div>';
+            return;
+          }
+          searchResults.innerHTML = hits.map(s => `
+            <div class="pl-search-row" data-song-id="${s.id}">
+              ${s.cover_art ? `<img src="${this._esc(s.cover_art)}" class="pl-search-thumb">` : `<div class="pl-search-thumb-placeholder">${_ICO.musicSm}</div>`}
+              <div class="pl-search-row-info">
+                <div class="pl-search-row-name">${this._esc(s.name)}</div>
+                <div class="pl-search-row-artist">${this._esc(s.artist_name || '')}</div>
+              </div>
+              <button class="pl-add-btn" data-song-id="${s.id}" ${currentIds.has(s.id) ? 'disabled' : ''}>
+                ${currentIds.has(s.id) ? 'Added' : 'Add'}
+              </button>
+            </div>`).join('');
+
+          searchResults.querySelectorAll('.pl-add-btn:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              try {
+                await API.addSongToPlaylist(playlist.id, parseInt(btn.dataset.songId));
+                const updated = await API.getPlaylist(playlist.id);
+                UI.renderPlaylistView(updated);
+              } catch (err) {
+                showToast(err.message === 'Song already in playlist' ? 'Already in playlist' : 'Failed to add song', 'error');
+              }
+            });
+          });
+        } catch (e) {
+          searchResults.innerHTML = '<div class="pl-search-none">Search failed</div>';
+          searchResults.classList.remove('hidden');
+        }
+      }, 300);
+    });
+
+    // ── Load durations asynchronously ─────────────────────────────────
+    view.querySelectorAll('.pl-track-row').forEach(row => {
+      const songId = parseInt(row.dataset.songId);
+      const song = songs.find(s => s.id === songId);
+      if (!song) return;
+      const a = new Audio();
+      a.addEventListener('loadedmetadata', () => {
+        const el = row.querySelector('.pl-track-duration');
+        if (el) el.textContent = UI._fmt(a.duration);
+      });
+      a.src = song.file_path;
+      a.load();
     });
   },
 };

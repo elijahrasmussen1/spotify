@@ -17,6 +17,7 @@
           <div id="create-dropdown" class="hidden">
             <button class="dropdown-item" onclick="openModal('create-artist')">Create Artist</button>
             <button class="dropdown-item" onclick="openModal('create-song')">Create Song</button>
+            <button class="dropdown-item" onclick="createPlaylist()">Playlist</button>
           </div>
         </div>
       </div>
@@ -74,6 +75,11 @@
       <div id="search-view" class="view hidden">
         <h2 class="search-title">Search Results</h2>
         <div id="search-results"></div>
+      </div>
+
+      <!-- PLAYLIST VIEW -->
+      <div id="playlist-view" class="view hidden">
+        <!-- populated by JS -->
       </div>
     </main>
 
@@ -190,7 +196,7 @@
         </div>
         <div class="form-group">
           <label>Year Created <span class="required">*</span></label>
-          <input type="number" id="song-year-input" placeholder="e.g. 2024" min="1900" max="2030">
+          <input type="number" id="song-year-input" placeholder="Enter year (e.g. 2023)" min="1900" max="2099">
         </div>
         <div class="form-group">
           <label>Create in Album?</label>
@@ -214,6 +220,37 @@
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal()">Cancel</button>
         <button class="btn-create" onclick="submitCreateSong()">Create</button>
+      </div>
+    </div>
+
+    <!-- Edit Playlist Modal -->
+    <div id="modal-edit-playlist" class="modal modal-ep hidden">
+      <div class="modal-header">
+        <h2>Edit details</h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body modal-body-ep">
+        <div class="ep-cover-area" id="ep-cover-area">
+          <input type="file" id="ep-cover-input" accept="image/*" style="display:none">
+          <div id="ep-cover-display">
+            <!-- filled by JS when modal opens -->
+          </div>
+          <div class="ep-cover-overlay">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span>Choose photo</span>
+          </div>
+        </div>
+        <div class="ep-fields">
+          <input type="text" id="ep-name-input" placeholder="Add a name" maxlength="100">
+          <textarea id="ep-desc-input" placeholder="Add an optional description" rows="3" maxlength="300"></textarea>
+          <div class="ep-save-row">
+            <button class="btn-save-ep" onclick="submitEditPlaylist()">Save</button>
+          </div>
+        </div>
+      </div>
+      <div class="ep-disclaimer">
+        By proceeding, you agree to give AudioHaven access to the image you choose to upload.
+        Please make sure you have the right to upload the image.
       </div>
     </div>
   </div>

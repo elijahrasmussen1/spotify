@@ -63,6 +63,24 @@ db.exec(`
     played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (song_id) REFERENCES songs(id)
   );
+
+  CREATE TABLE IF NOT EXISTS playlists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    cover_art TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS playlist_songs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    playlist_id INTEGER NOT NULL,
+    song_id INTEGER NOT NULL,
+    position INTEGER DEFAULT 0,
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+  );
 `);
 
 // ─── Multer storage ──────────────────────────────────────────────────────────
@@ -236,9 +254,10 @@ app.post('/api/albums', uploadAlbumFields.single('coverArt'), (req, res) => {
   const { artistId, name, year } = req.body;
   if (!artistId || !name) return res.status(400).json({ error: 'artistId and name are required' });
   const cover_art = req.file ? `/uploads/covers/${req.file.filename}` : null;
+  const yearInt = year ? (parseInt(year, 10) || null) : null;
   const result = db
     .prepare('INSERT INTO albums (artist_id, name, cover_art, year) VALUES (?, ?, ?, ?)')
-    .run(artistId, name, cover_art, year || null);
+    .run(artistId, name, cover_art, yearInt);
   const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(album);
 });
@@ -298,13 +317,14 @@ app.post(
       ? `/uploads/covers/${req.files['coverArt'][0].filename}`
       : null;
 
+    const yearInt = year ? (parseInt(year, 10) || null) : null;
     let resolvedAlbumId = albumId && albumId !== '' ? parseInt(albumId) : null;
 
     // Create new album if requested
     if (newAlbumName && newAlbumName.trim()) {
       const albumResult = db
         .prepare('INSERT INTO albums (artist_id, name, cover_art, year) VALUES (?, ?, ?, ?)')
-        .run(artistId, newAlbumName.trim(), cover_art, year || null);
+        .run(artistId, newAlbumName.trim(), cover_art, yearInt);
       resolvedAlbumId = albumResult.lastInsertRowid;
     }
 
@@ -314,7 +334,7 @@ app.post(
       .prepare(
         'INSERT INTO songs (artist_id, album_id, name, file_path, cover_art, features, year) VALUES (?, ?, ?, ?, ?, ?, ?)'
       )
-      .run(artistId, resolvedAlbumId, name, file_path, cover_art, featuresStr, year || null);
+      .run(artistId, resolvedAlbumId, name, file_path, cover_art, featuresStr, yearInt);
 
     const song = songWithArtist(
       db.prepare('SELECT * FROM songs WHERE id = ?').get(result.lastInsertRowid)
@@ -405,6 +425,101 @@ app.get('/api/search', (req, res) => {
     )
     .all(q);
   res.json({ artists, songs, albums });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PLAYLIST ROUTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/playlists', (req, res) => {
+  const playlists = db.prepare('SELECT * FROM playlists ORDER BY created_at DESC').all();
+  res.json(playlists);
+});
+
+app.post('/api/playlists', (req, res) => {
+  const count = db.prepare('SELECT COUNT(*) AS c FROM playlists').get().c;
+  const name = `My Playlist #${count + 1}`;
+  const result = db.prepare('INSERT INTO playlists (name) VALUES (?)').run(name);
+  const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(playlist);
+});
+
+app.get('/api/playlists/:id', (req, res) => {
+  const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(req.params.id);
+  if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+  const songs = db
+    .prepare(
+      `SELECT s.*, a.name AS artist_name, a.picture AS artist_picture,
+              ps.id AS playlist_song_id, ps.position
+       FROM playlist_songs ps
+       JOIN songs s ON ps.song_id = s.id
+       JOIN artists a ON s.artist_id = a.id
+       WHERE ps.playlist_id = ?
+       ORDER BY ps.position ASC, ps.added_at ASC`
+    )
+    .all(playlist.id);
+  res.json({ ...playlist, songs });
+});
+
+app.patch('/api/playlists/:id', uploadCover.single('coverArt'), (req, res) => {
+  const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(req.params.id);
+  if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+
+  const name = req.body.name !== undefined ? req.body.name.trim() || playlist.name : playlist.name;
+  const description = req.body.description !== undefined ? req.body.description : playlist.description;
+  let cover_art = playlist.cover_art;
+
+  if (req.file) {
+    if (playlist.cover_art) {
+      const p = '.' + playlist.cover_art;
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    }
+    cover_art = `/uploads/covers/${req.file.filename}`;
+  }
+
+  db.prepare('UPDATE playlists SET name = ?, description = ?, cover_art = ? WHERE id = ?')
+    .run(name, description || null, cover_art, playlist.id);
+  const updated = db.prepare('SELECT * FROM playlists WHERE id = ?').get(playlist.id);
+  res.json(updated);
+});
+
+app.delete('/api/playlists/:id', (req, res) => {
+  const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(req.params.id);
+  if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+  if (playlist.cover_art) {
+    const p = '.' + playlist.cover_art;
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+  db.prepare('DELETE FROM playlist_songs WHERE playlist_id = ?').run(playlist.id);
+  db.prepare('DELETE FROM playlists WHERE id = ?').run(playlist.id);
+  res.json({ success: true });
+});
+
+app.post('/api/playlists/:id/songs', (req, res) => {
+  const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(req.params.id);
+  if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+  const { songId } = req.body;
+  if (!songId) return res.status(400).json({ error: 'songId is required' });
+  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(songId);
+  if (!song) return res.status(404).json({ error: 'Song not found' });
+  const existing = db
+    .prepare('SELECT id FROM playlist_songs WHERE playlist_id = ? AND song_id = ?')
+    .get(playlist.id, songId);
+  if (existing) return res.status(409).json({ error: 'Song already in playlist' });
+  const maxPos = db
+    .prepare('SELECT COALESCE(MAX(position), 0) AS m FROM playlist_songs WHERE playlist_id = ?')
+    .get(playlist.id).m;
+  db.prepare('INSERT INTO playlist_songs (playlist_id, song_id, position) VALUES (?, ?, ?)')
+    .run(playlist.id, songId, maxPos + 1);
+  res.status(201).json({ success: true });
+});
+
+app.delete('/api/playlists/:id/songs/:songId', (req, res) => {
+  const result = db
+    .prepare('DELETE FROM playlist_songs WHERE playlist_id = ? AND song_id = ?')
+    .run(req.params.id, req.params.songId);
+  if (!result.changes) return res.status(404).json({ error: 'Song not in playlist' });
+  res.json({ success: true });
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────

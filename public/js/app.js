@@ -61,6 +61,17 @@ async function navigateTo(view, id) {
     }
     return;
   }
+
+  if (view === 'playlist') {
+    showView('playlist');
+    try {
+      const playlist = await API.getPlaylist(id);
+      UI.renderPlaylistView(playlist);
+    } catch (e) {
+      showToast('Failed to load playlist', 'error');
+    }
+    return;
+  }
 }
 
 // ─── Modals ──────────────────────────────────────────────────────────────────
@@ -120,6 +131,18 @@ function resetModalForms() {
   window._selectedFeatures = [];
   document.getElementById('song-features-tags').innerHTML = '';
   document.getElementById('song-features-input').value = '';
+
+  // Edit playlist form
+  const epName = document.getElementById('ep-name-input');
+  const epDesc = document.getElementById('ep-desc-input');
+  const epCoverDisplay = document.getElementById('ep-cover-display');
+  const epCoverInput = document.getElementById('ep-cover-input');
+  if (epName) epName.value = '';
+  if (epDesc) epDesc.value = '';
+  if (epCoverDisplay) epCoverDisplay.innerHTML = '';
+  if (epCoverInput) epCoverInput.value = '';
+  window._epCoverFile = null;
+  window._editingPlaylistId = null;
 }
 
 // ─── Image preview helpers ────────────────────────────────────────────────────
@@ -232,6 +255,50 @@ async function submitCreateSong() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Create';
+  }
+}
+
+// ─── Create Playlist ──────────────────────────────────────────────────────────
+async function createPlaylist() {
+  document.getElementById('create-dropdown').classList.add('hidden');
+  try {
+    const playlist = await API.createPlaylist();
+    showToast(`"${playlist.name}" created`);
+    UI.renderLibrary('playlists');
+    navigateTo('playlist', playlist.id);
+  } catch (e) {
+    showToast('Failed to create playlist', 'error');
+  }
+}
+
+// ─── Submit: Edit Playlist ────────────────────────────────────────────────────
+async function submitEditPlaylist() {
+  const id = window._editingPlaylistId;
+  if (!id) return;
+
+  const name = document.getElementById('ep-name-input').value.trim();
+  if (!name) { showToast('Playlist name is required', 'error'); return; }
+
+  const btn = document.querySelector('#modal-edit-playlist .btn-save-ep');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('description', document.getElementById('ep-desc-input').value.trim());
+    if (window._epCoverFile) fd.append('coverArt', window._epCoverFile);
+
+    await API.updatePlaylist(id, fd);
+    showToast('Playlist updated');
+    closeModal();
+    UI.renderLibrary('playlists');
+    navigateTo('playlist', id);
+  } catch (e) {
+    showToast(e.message || 'Failed to update playlist', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save';
   }
 }
 
