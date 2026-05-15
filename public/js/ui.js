@@ -323,7 +323,7 @@ const UI = {
         <h2 class="artist-section-title">Albums</h2>
         <div class="albums-grid">${albumCards}</div>
       </div>` : ''}
-      ${soloCards ? `
+      ${soloSongs.length > 0 ? `
       <div class="artist-section">
         <h2 class="artist-section-title">Solo Releases</h2>
         <div class="albums-grid">${soloCards}</div>
@@ -950,8 +950,12 @@ const UI = {
           const f = epInput.files[0];
           if (!f) return;
           window._epCoverFile = f;
-          const url = URL.createObjectURL(f);
-          coverDisplay.innerHTML = `<img src="${url}" class="ep-cover-img" alt="cover">`;
+          const img = document.createElement('img');
+          img.className = 'ep-cover-img';
+          img.alt = 'cover';
+          img.src = URL.createObjectURL(f);
+          coverDisplay.innerHTML = '';
+          coverDisplay.appendChild(img);
         };
       }, 20);
     });

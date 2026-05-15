@@ -143,7 +143,7 @@ const uploadAlbumFields = multer({
       cb(null, './uploads/covers');
     },
     filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
+      const ext = path.extname(file.originalname).toLowerCase();
       cb(null, Date.now() + '_' + file.fieldname + ext);
     },
   }),
