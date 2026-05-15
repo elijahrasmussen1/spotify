@@ -405,8 +405,9 @@ ul { list-style: none; }
   gap: 16px;
   overflow-x: auto;
   padding-bottom: 8px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
+#recents-list::-webkit-scrollbar { display: none; }
 
 .recents-card {
   flex-shrink: 0;
@@ -2336,20 +2337,21 @@ input[type="range"] {
   flex-direction: column;
   overflow: hidden;
   cursor: default;
+  background: #000;
 }
 #fullscreen-overlay.hidden { display: none !important; }
 #fullscreen-overlay.controls-hidden { cursor: none; }
 #fullscreen-overlay.controls-hidden #fs-topbar,
-#fullscreen-overlay.controls-hidden #fs-bottom { opacity: 0; pointer-events: none; }
+#fullscreen-overlay.controls-hidden #fs-controls { opacity: 0; pointer-events: none; }
+#fullscreen-overlay.controls-hidden #fs-topbar { pointer-events: none; }
 
 /* Background art (blurred cover) */
 #fs-bg {
   position: absolute;
-  inset: 0;
+  inset: -10%;
   background-size: cover;
   background-position: center;
   filter: blur(60px) brightness(0.35) saturate(1.4);
-  transform: scale(1.08);
   transition: background-image 0.8s ease;
 }
 #fs-gradient {
@@ -2427,7 +2429,6 @@ input[type="range"] {
   position: relative;
   z-index: 2;
   padding: 0 28px 32px;
-  transition: opacity 0.4s ease;
 }
 #fs-info {
   margin-bottom: 20px;
@@ -2450,7 +2451,7 @@ input[type="range"] {
   white-space: nowrap;
   max-width: 60vw;
 }
-#fs-controls { display: flex; flex-direction: column; gap: 8px; }
+#fs-controls { display: flex; flex-direction: column; gap: 8px; transition: opacity 0.4s ease; }
 #fs-progress-row {
   display: flex;
   align-items: center;
@@ -2514,3 +2515,22 @@ input[type="range"] {
   border-radius: 50%;
 }
 .fs-play-btn:hover { background: #ddd; color: #000; transform: scale(1.06); }
+
+/* ── Fullscreen art slide animation ── */
+@keyframes fs-slide-out-left {
+  from { transform: translateX(0) scale(1); opacity: 1; }
+  to   { transform: translateX(-60px) scale(0.92); opacity: 0; }
+}
+@keyframes fs-slide-in-right {
+  from { transform: translateX(60px) scale(0.92); opacity: 0; }
+  to   { transform: translateX(0) scale(1); opacity: 1; }
+}
+#fs-art.slide-out { animation: fs-slide-out-left 0.28s ease forwards; }
+#fs-art.slide-in  { animation: fs-slide-in-right 0.32s ease forwards; }
+
+/* ── Fullscreen info animation ── */
+@keyframes fs-info-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#fs-info.info-update { animation: fs-info-fade-in 0.35s ease forwards; }

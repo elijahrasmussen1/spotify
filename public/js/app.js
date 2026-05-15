@@ -306,6 +306,17 @@ async function submitEditPlaylist() {
 document.addEventListener('DOMContentLoaded', async () => {
   Player.init();
 
+  // Recents list: allow horizontal scroll via mouse wheel (no visible scrollbar)
+  const recentsList = document.getElementById('recents-list');
+  if (recentsList) {
+    recentsList.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        recentsList.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
+  }
+
   // Initial render
   showView('home');
   UI.renderHomeView();
@@ -362,20 +373,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   let fsIdleTimer = null;
   let fsActive = false;
 
-  function updateFullscreen() {
-    if (!fsActive) return;
-    const song = Player.currentSong;
+  function _applyFsContent(song, animate) {
     const fsArt = document.getElementById('fs-art');
     const fsBg = document.getElementById('fs-bg');
     const fsGrad = document.getElementById('fs-gradient');
+    const fsInfo = document.getElementById('fs-info');
 
     if (song) {
       const src = song.cover_art || '';
-    if (src) {
+      if (src) {
         const escapedSrc = UI._esc(src);
         fsArt.innerHTML = `<img src="${escapedSrc}" alt="">`;
         fsBg.style.backgroundImage = `url("${escapedSrc}")`;
-        // Apply dominant gradient
         Player.extractDominantColor(src).then(color => {
           if (!color) return;
           const [r, g, b] = color.match(/\d+/g).map(Number);
@@ -390,7 +399,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('fs-song-name').textContent = UI._rawName(song);
       document.getElementById('fs-artist-name').textContent = song.artist_name || (song.artist && song.artist.name) || '';
 
-      // Update 3-dots button data attrs for context menu
       const fsDotsBtn = document.getElementById('fs-dots-btn');
       fsDotsBtn.dataset.songId = song.id || '';
       fsDotsBtn.dataset.artistId = song.artist_id || '';
@@ -399,9 +407,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       fsArt.innerHTML = `<div class="fs-art-placeholder">${_ICO.musicMd}</div>`;
       fsBg.style.backgroundImage = 'none';
+      fsGrad.style.background = '';
       document.getElementById('fs-song-name').textContent = 'Nothing playing';
       document.getElementById('fs-artist-name').textContent = '';
     }
+
+    if (animate) {
+      // art: slide in from right
+      fsArt.classList.remove('slide-out', 'slide-in');
+      void fsArt.offsetWidth; // reflow
+      fsArt.classList.add('slide-in');
+      fsArt.addEventListener('animationend', () => fsArt.classList.remove('slide-in'), { once: true });
+      // info: fade up
+      fsInfo.classList.remove('info-update');
+      void fsInfo.offsetWidth;
+      fsInfo.classList.add('info-update');
+      fsInfo.addEventListener('animationend', () => fsInfo.classList.remove('info-update'), { once: true });
+    }
+  }
+
+  function updateFullscreen(animate) {
+    if (!fsActive) return;
+    const song = Player.currentSong;
+    _applyFsContent(song, animate);
 
     // Sync play/pause state
     const fsPlayBtn = document.getElementById('fs-btn-play');
@@ -410,10 +438,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       fsPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
     }
-    // Sync shuffle
     document.getElementById('fs-btn-shuffle').classList.toggle('active', Player.isShuffled);
-    // Sync repeat
     document.getElementById('fs-btn-repeat').classList.toggle('active', Player.repeatMode !== 'none');
+  }
+
+  function animateFsTransition() {
+    if (!fsActive) return;
+    const fsArt = document.getElementById('fs-art');
+    // Slide old art out first
+    fsArt.classList.remove('slide-out', 'slide-in');
+    void fsArt.offsetWidth;
+    fsArt.classList.add('slide-out');
+    fsArt.addEventListener('animationend', () => {
+      fsArt.classList.remove('slide-out');
+      updateFullscreen(true);
+    }, { once: true });
   }
 
   function resetFsIdleTimer() {
@@ -484,7 +523,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Update fullscreen when song changes
   document.addEventListener('songchange', () => {
-    if (fsActive) updateFullscreen();
+    if (fsActive) animateFsTransition();
   });
 
   // ESC exits fullscreen
