@@ -153,14 +153,14 @@ function setupImagePreview(inputId, previewId, placeholderId) {
 
   input.addEventListener('change', () => {
     const file = input.files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    // createObjectURL always returns a blob: URL — safe to assign to src
-    if (url.startsWith('blob:')) {
-      preview.src = url;
-    }
-    preview.classList.remove('hidden');
-    if (placeholder) placeholder.classList.add('hidden');
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      preview.src = ev.target.result; // safe data: URL from FileReader
+      preview.classList.remove('hidden');
+      if (placeholder) placeholder.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
   });
 }
 
@@ -371,15 +371,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (song) {
       const src = song.cover_art || '';
-      if (src) {
-        fsArt.innerHTML = `<img src="${src.replace(/"/g, '&quot;')}" alt="">`;
-        fsBg.style.backgroundImage = `url("${src.replace(/"/g, '&quot;')}")`;
+    if (src) {
+        const escapedSrc = UI._esc(src);
+        fsArt.innerHTML = `<img src="${escapedSrc}" alt="">`;
+        fsBg.style.backgroundImage = `url("${escapedSrc}")`;
         // Apply dominant gradient
         Player.extractDominantColor(src).then(color => {
           if (!color) return;
           const [r, g, b] = color.match(/\d+/g).map(Number);
           fsGrad.style.background = `linear-gradient(to bottom, rgba(${r},${g},${b},0.25) 0%, rgba(${r},${g},${b},0.08) 40%, rgba(${r},${g},${b},0.55) 80%, rgba(0,0,0,0.92) 100%)`;
-          fsBg.style.backgroundImage = `url("${src.replace(/"/g, '&quot;')}")`;
+          fsBg.style.backgroundImage = `url("${escapedSrc}")`;
         });
       } else {
         fsArt.innerHTML = `<div class="fs-art-placeholder">${_ICO.musicMd}</div>`;
