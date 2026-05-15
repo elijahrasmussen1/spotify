@@ -84,7 +84,7 @@
     </main>
 
     <!-- RIGHT PANEL: Now Playing -->
-    <aside id="now-playing-panel">
+    <aside id="now-playing-panel" class="hidden">
       <div id="now-playing-empty">
         <p>Nothing playing yet</p>
       </div>
@@ -121,7 +121,26 @@
     <div id="player-right">
       <button class="ctrl-btn" id="btn-volume" title="Mute/Unmute">🔊</button>
       <input type="range" id="volume-slider" min="0" max="100" value="80">
+      <div class="player-extra-btns">
+        <button class="ctrl-btn player-extra-btn" id="btn-queue" title="Queue"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+        <button class="ctrl-btn player-extra-btn" id="btn-fullscreen" title="Full screen"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+      </div>
     </div>
+  </div>
+
+  <!-- Global Song Context Menu -->
+  <div id="song-ctx-menu" class="ctx-menu hidden">
+    <button class="ctx-item" id="ctx-add-queue">Add to queue</button>
+    <div class="ctx-divider"></div>
+    <button class="ctx-item" id="ctx-add-playlist">Add to playlist</button>
+    <button class="ctx-item" id="ctx-go-artist">Go to artist</button>
+    <button class="ctx-item" id="ctx-go-album">Go to album</button>
+  </div>
+
+  <!-- Playlist Picker Sub-menu -->
+  <div id="playlist-picker" class="ctx-menu hidden">
+    <div class="ctx-picker-title">Add to playlist</div>
+    <div id="playlist-picker-list"></div>
   </div>
 
   <!-- MODALS -->

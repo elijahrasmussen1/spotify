@@ -54,6 +54,20 @@ const UI = {
     return n.toString();
   },
 
+  _dotsBtnHtml(song, inQueue = false) {
+    return `<button class="row-dots-btn"
+      data-song-id="${song.id}"
+      data-artist-id="${song.artist_id || ''}"
+      data-album-id="${song.album_id || ''}"
+      data-in-queue="${inQueue}"
+      title="More options">${_ICO.dots}</button>`;
+  },
+
+  _registerSong(song) {
+    if (!window._songDataMap) window._songDataMap = new Map();
+    window._songDataMap.set(song.id, song);
+  },
+
   _coverImg(src, cls = '', alt = '') {
     if (src) {
       return `<img src="${src}" class="${cls}" alt="${alt}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -76,27 +90,169 @@ const UI = {
     document.getElementById('player-artist-name').textContent = artistName;
   },
 
-  /* ── Now Playing panel ────────────────────────────────────────────── */
-  renderNowPlaying(song) {
+  /* ── Queue Panel ──────────────────────────────────────────────────── */
+  renderQueuePanel() {
     const panel = document.getElementById('now-playing-panel');
-    if (!song) {
-      panel.innerHTML = `<div id="now-playing-empty"><p>Nothing playing yet</p></div>`;
+    if (panel.classList.contains('hidden')) return; // not open, skip
+
+    const queue = Player.queue;
+    const currentIdx = Player.queueIndex;
+    const current = queue[currentIdx];
+    const upcoming = queue.slice(currentIdx + 1);
+    const source = Player.queueSource || 'queue';
+
+    const closeBtn = `<button class="queue-close-btn" id="queue-close-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+
+    if (!queue.length) {
+      panel.innerHTML = `
+        <div class="queue-header"><span class="queue-title">Queue</span>${closeBtn}</div>
+        <div class="queue-body"><div class="queue-empty">
+          <div class="empty-state-icon">${_ICO.music}</div>
+          <div class="empty-state-text">Queue is empty</div>
+        </div></div>`;
+      panel.querySelector('#queue-close-btn').addEventListener('click', () => {
+        panel.classList.add('hidden');
+        document.getElementById('btn-queue').classList.remove('active');
+      });
       return;
     }
-    const artistName = song.artist ? song.artist.name : (song.artist_name || '');
-    const coverHtml = song.cover_art
-      ? `<img src="${song.cover_art}" class="np-cover" alt="cover">`
-      : `<div class="np-cover-placeholder">${_ICO.music}</div>`;
+
+    const currentHtml = current ? `
+      <div class="queue-item queue-current">
+        ${current.cover_art
+          ? `<img src="${this._esc(current.cover_art)}" class="queue-item-cover" alt="">`
+          : `<div class="queue-item-cover queue-item-cover-ph">${_ICO.musicSm}</div>`}
+        <div class="queue-item-info">
+          <div class="queue-item-name queue-now-name">${this._esc(this._rawName(current))}</div>
+          <div class="queue-item-artist">${this._esc(current.artist_name || (current.artist && current.artist.name) || '')}</div>
+        </div>
+      </div>` : '';
+
+    const upcomingHtml = upcoming.map((song, i) => {
+      const absIdx = currentIdx + 1 + i;
+      const artistName = song.artist_name || (song.artist && song.artist.name) || '';
+      return `<div class="queue-item queue-upcoming-item"
+        draggable="true"
+        data-queue-idx="${absIdx}"
+        data-song-id="${song.id}"
+        data-artist-id="${song.artist_id || ''}"
+        data-album-id="${song.album_id || ''}">
+        <div class="queue-drag-handle"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg></div>
+        ${song.cover_art
+          ? `<img src="${this._esc(song.cover_art)}" class="queue-item-cover" alt="">`
+          : `<div class="queue-item-cover queue-item-cover-ph">${_ICO.musicSm}</div>`}
+        <div class="queue-item-info">
+          <div class="queue-item-name">${this._esc(this._rawName(song))}</div>
+          <div class="queue-item-artist">${this._esc(artistName)}</div>
+        </div>
+        <button class="queue-item-dots row-dots-btn"
+          data-song-id="${song.id}"
+          data-artist-id="${song.artist_id || ''}"
+          data-album-id="${song.album_id || ''}"
+          data-in-queue="true"
+          title="More options">${_ICO.dots}</button>
+      </div>`;
+    }).join('');
 
     panel.innerHTML = `
-      <div class="np-header">Now Playing</div>
-      <div class="np-cover-wrapper">${coverHtml}</div>
-      <div class="np-info">
-        <div class="np-song-name">${this._songDisplayName(song)}</div>
-        <div class="np-artist-name">${this._esc(artistName)}</div>
-      </div>
-    `;
+      <div class="queue-header"><span class="queue-title">Queue</span>${closeBtn}</div>
+      <div class="queue-body" id="queue-body">
+        <div class="queue-section">
+          <div class="queue-section-title">Now playing</div>
+          ${currentHtml}
+        </div>
+        ${upcoming.length ? `
+        <div class="queue-section">
+          <div class="queue-section-title">Next from: ${this._esc(source)}</div>
+          <div id="queue-upcoming-list">${upcomingHtml}</div>
+        </div>` : ''}
+      </div>`;
+
+    panel.querySelector('#queue-close-btn').addEventListener('click', () => {
+      panel.classList.add('hidden');
+      document.getElementById('btn-queue').classList.remove('active');
+    });
+
+    // Click on upcoming → jump to that song
+    panel.querySelectorAll('.queue-upcoming-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.queue-item-dots') || e.target.closest('.queue-drag-handle')) return;
+        const idx = parseInt(item.dataset.queueIdx);
+        if (!isNaN(idx)) { Player.queueIndex = idx; Player.play(Player.queue[idx]); }
+      });
+    });
+
+    // Drag-and-drop reorder
+    this._initQueueDragDrop(panel.querySelectorAll('.queue-upcoming-item'));
   },
+
+  _rawName(song) {
+    if (!song.features) return song.name;
+    try {
+      const arr = JSON.parse(song.features);
+      if (Array.isArray(arr) && arr.length) return `${song.name} (Feat. ${arr.join(', ')})`;
+    } catch (_) {}
+    return song.name;
+  },
+
+  _initQueueDragDrop(items) {
+    let dragSrcIdx = null;
+    const clearIndicators = () => {
+      document.querySelectorAll('.queue-upcoming-item').forEach(i => i.classList.remove('drag-over-top', 'drag-over-bottom'));
+    };
+
+    items.forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        dragSrcIdx = parseInt(item.dataset.queueIdx);
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(dragSrcIdx));
+      });
+
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        clearIndicators();
+      });
+
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        clearIndicators();
+        const rect = item.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) item.classList.add('drag-over-top');
+        else item.classList.add('drag-over-bottom');
+      });
+
+      item.addEventListener('dragleave', () => item.classList.remove('drag-over-top', 'drag-over-bottom'));
+
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        clearIndicators();
+        const targetIdx = parseInt(item.dataset.queueIdx);
+        if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+
+        const currentIdx = Player.queueIndex;
+        const upcoming = Player.queue.splice(currentIdx + 1);
+        const srcRel = dragSrcIdx - (currentIdx + 1);
+        const tgtRel = targetIdx - (currentIdx + 1);
+        if (srcRel < 0 || srcRel >= upcoming.length) { Player.queue.splice(currentIdx + 1, 0, ...upcoming); return; }
+
+        const rect = item.getBoundingClientRect();
+        const insertBefore = e.clientY < rect.top + rect.height / 2;
+        const moved = upcoming.splice(srcRel, 1)[0];
+        let insertAt = tgtRel;
+        if (srcRel < tgtRel) insertAt = insertBefore ? tgtRel - 1 : tgtRel;
+        else insertAt = insertBefore ? tgtRel : tgtRel + 1;
+        insertAt = Math.max(0, Math.min(upcoming.length, insertAt));
+        upcoming.splice(insertAt, 0, moved);
+        Player.queue.splice(currentIdx + 1, 0, ...upcoming);
+        UI.renderQueuePanel();
+      });
+    });
+  },
+
+  /* ── Deprecated: kept to avoid any stale calls ───────────────────── */
+  renderNowPlaying(song) { this.renderQueuePanel(); },
 
   /* ── Home View ────────────────────────────────────────────────────── */
   async renderHomeView() {
@@ -248,6 +404,8 @@ const UI = {
 
     const topSongs = [...songs].sort((a, b) => b.plays - a.plays).slice(0, 10);
 
+    songs.forEach(s => this._registerSong(s));
+
     const songRows = topSongs.map((song, i) => {
       const displayName = this._songDisplayName(song);
       const coverHtml = song.cover_art
@@ -268,6 +426,7 @@ const UI = {
         </div>
         <div class="song-plays">${this._fmtPlays(song.plays)}</div>
         <div class="song-duration">--:--</div>
+        <div class="song-row-menu">${this._dotsBtnHtml(song)}</div>
       </div>`;
     }).join('');
 
@@ -314,7 +473,7 @@ const UI = {
       <div class="artist-section">
         <h2 class="artist-section-title">Most Played</h2>
         <div class="song-list-header">
-          <span>#</span><span>Title</span><span>Plays</span><span>Duration</span>
+          <span>#</span><span>Title</span><span>Plays</span><span>Duration</span><span></span>
         </div>
         ${topSongs.length ? songRows : `<div class="empty-state"><div class="empty-state-icon">${_ICO.music}</div><div class="empty-state-text">No songs yet</div></div>`}
       </div>
@@ -341,7 +500,7 @@ const UI = {
     // Play all songs
     document.getElementById('artist-play-btn').addEventListener('click', () => {
       if (songs.length) {
-        Player.setQueue(songs, 0);
+        Player.setQueue(songs, 0, artist.name);
         Player.play(songs[0]);
       }
     });
@@ -350,7 +509,7 @@ const UI = {
     document.getElementById('artist-shuffle-btn').addEventListener('click', () => {
       if (songs.length) {
         const idx = Math.floor(Math.random() * songs.length);
-        Player.setQueue(songs, idx);
+        Player.setQueue(songs, idx, artist.name);
         Player.isShuffled = true;
         document.getElementById('btn-shuffle').classList.add('active');
         Player.play(songs[idx]);
@@ -369,11 +528,12 @@ const UI = {
 
     // Song row click
     view.querySelectorAll('.song-list-row').forEach(row => {
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.row-dots-btn')) return;
         const songId = parseInt(row.dataset.songId);
         const song = songs.find(s => s.id === songId);
         if (song) {
-          Player.setQueue(songs, songs.indexOf(song));
+          Player.setQueue(songs, songs.indexOf(song), artist.name);
           Player.play(song);
         }
       });
@@ -442,6 +602,7 @@ const UI = {
       : `<div class="album-hero-cover-placeholder">${_ICO.disc}</div>`;
 
     const trackRows = songs.map((song, i) => {
+      this._registerSong({ ...song, album_id: album.id, artist_id: song.artist_id || artist.id });
       const displayName = this._songDisplayName(song);
       const isCurrent = Player.currentSong && Player.currentSong.id === song.id;
       return `<div class="tracklist-row" data-song-id="${song.id}">
@@ -454,6 +615,7 @@ const UI = {
           <div class="track-artist">${this._esc(song.artist ? song.artist.name : (artist.name || ''))}</div>
         </div>
         <div class="track-duration">--:--</div>
+        <div class="track-row-menu">${this._dotsBtnHtml({ ...song, album_id: album.id, artist_id: song.artist_id || artist.id || '' })}</div>
       </div>`;
     }).join('');
 
@@ -481,7 +643,7 @@ const UI = {
       </div>
       <div class="album-tracklist">
         <div class="tracklist-header">
-          <span>#</span><span>Title</span><span style="text-align:right">Duration</span>
+          <span>#</span><span>Title</span><span style="text-align:right">Duration</span><span></span>
         </div>
         ${songs.length ? trackRows : `<div class="empty-state"><div class="empty-state-icon">${_ICO.music}</div><div class="empty-state-text">No songs yet</div></div>`}
       </div>
@@ -508,7 +670,7 @@ const UI = {
     // Play
     document.getElementById('album-play-btn').addEventListener('click', () => {
       if (songs.length) {
-        Player.setQueue(songs, 0);
+        Player.setQueue(songs, 0, album.name);
         Player.play(songs[0]);
       }
     });
@@ -516,7 +678,7 @@ const UI = {
     document.getElementById('album-shuffle-btn').addEventListener('click', () => {
       if (songs.length) {
         const idx = Math.floor(Math.random() * songs.length);
-        Player.setQueue(songs, idx);
+        Player.setQueue(songs, idx, album.name);
         Player.isShuffled = true;
         document.getElementById('btn-shuffle').classList.add('active');
         Player.play(songs[idx]);
@@ -525,11 +687,12 @@ const UI = {
 
     // Tracklist click
     view.querySelectorAll('.tracklist-row').forEach(row => {
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.row-dots-btn')) return;
         const songId = parseInt(row.dataset.songId);
         const song = songs.find(s => s.id === songId);
         if (song) {
-          Player.setQueue(songs, songs.indexOf(song));
+          Player.setQueue(songs, songs.indexOf(song), album.name);
           Player.play(song);
         }
       });
@@ -821,6 +984,8 @@ const UI = {
       ? `<img src="${this._esc(playlist.cover_art)}" class="pl-hero-cover" alt="${this._esc(playlist.name)}">`
       : `<div class="pl-hero-cover-placeholder">${_ICO.musicLg}</div>`;
 
+    songs.forEach(s => this._registerSong(s));
+
     const trackRows = songs.map((song, i) => {
       const displayName = this._songDisplayName(song);
       const isCurrent = Player.currentSong && Player.currentSong.id === song.id;
@@ -840,6 +1005,7 @@ const UI = {
           </div>
         </div>
         <div class="pl-track-duration">--:--</div>
+        ${this._dotsBtnHtml(song)}
         <button class="pl-track-remove" data-song-id="${song.id}" title="Remove from playlist">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -875,7 +1041,7 @@ const UI = {
       ${songs.length > 0 ? `
       <div class="pl-tracklist">
         <div class="pl-tracklist-header">
-          <span>#</span><span>Title</span><span class="pl-dur-col">Duration</span>
+          <span>#</span><span>Title</span><span class="pl-dur-col">Duration</span><span></span><span></span>
         </div>
         ${trackRows}
       </div>` : ''}
@@ -980,17 +1146,17 @@ const UI = {
     const playBtn = view.querySelector('#pl-play-btn');
     if (playBtn) {
       playBtn.addEventListener('click', () => {
-        if (songs.length) { Player.setQueue(songs, 0); Player.play(songs[0]); }
+        if (songs.length) { Player.setQueue(songs, 0, playlist.name); Player.play(songs[0]); }
       });
     }
 
     // ── Track row click ───────────────────────────────────────────────
     view.querySelectorAll('.pl-track-row').forEach(row => {
       row.addEventListener('click', (e) => {
-        if (e.target.closest('.pl-track-remove')) return;
+        if (e.target.closest('.pl-track-remove') || e.target.closest('.row-dots-btn')) return;
         const songId = parseInt(row.dataset.songId);
         const song = songs.find(s => s.id === songId);
-        if (song) { Player.setQueue(songs, songs.indexOf(song)); Player.play(song); }
+        if (song) { Player.setQueue(songs, songs.indexOf(song), playlist.name); Player.play(song); }
       });
     });
 

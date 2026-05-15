@@ -348,6 +348,136 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // Queue toggle button
+  const queuePanel = document.getElementById('now-playing-panel');
+  document.getElementById('btn-queue').addEventListener('click', () => {
+    const isOpen = !queuePanel.classList.contains('hidden');
+    queuePanel.classList.toggle('hidden', isOpen);
+    document.getElementById('btn-queue').classList.toggle('active', !isOpen);
+    if (!isOpen) UI.renderQueuePanel();
+  });
+
+  // Fullscreen button — no-op (placeholder for future use)
+  document.getElementById('btn-fullscreen').addEventListener('click', () => {});
+
+  // Re-render queue panel when queue changes
+  document.addEventListener('queuechanged', () => {
+    if (!document.getElementById('now-playing-panel').classList.contains('hidden')) {
+      UI.renderQueuePanel();
+    }
+  });
+
+  // ── Global Song Context Menu ──────────────────────────────────────
+  const ctxMenu = document.getElementById('song-ctx-menu');
+  const playlistPicker = document.getElementById('playlist-picker');
+  let _ctxSong = null;
+
+  function closeSongCtxMenu() {
+    ctxMenu.classList.add('hidden');
+    playlistPicker.classList.add('hidden');
+  }
+
+  function openSongCtxMenu(btn) {
+    const songId = parseInt(btn.dataset.songId);
+    const inQueue = btn.dataset.inQueue === 'true';
+    const artistId = btn.dataset.artistId;
+    const albumId = btn.dataset.albumId;
+    const song = (window._songDataMap && window._songDataMap.get(songId))
+      || Player.queue.find(s => s.id === songId)
+      || null;
+    _ctxSong = song || { id: songId, artist_id: artistId, album_id: albumId };
+
+    // Toggle items based on context
+    document.getElementById('ctx-add-queue').classList.toggle('hidden', inQueue);
+    document.getElementById('ctx-go-album').classList.toggle('hidden', !albumId);
+
+    // Position menu
+    closeSongCtxMenu();
+    const rect = btn.getBoundingClientRect();
+    const menuW = 200;
+    let left = rect.right + 4;
+    if (left + menuW > window.innerWidth) left = rect.left - menuW - 4;
+    ctxMenu.style.left = `${left}px`;
+    ctxMenu.style.top = `${Math.min(rect.bottom, window.innerHeight - 180)}px`;
+    ctxMenu.classList.remove('hidden');
+
+    // Separator visibility
+    const addQueueItem = document.getElementById('ctx-add-queue');
+    const divider = ctxMenu.querySelector('.ctx-divider');
+    divider.classList.toggle('hidden', inQueue);
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.row-dots-btn')) {
+      e.stopPropagation();
+      openSongCtxMenu(e.target.closest('.row-dots-btn'));
+      return;
+    }
+    if (!e.target.closest('#song-ctx-menu') && !e.target.closest('#playlist-picker')) {
+      closeSongCtxMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSongCtxMenu();
+  });
+
+  // Add to queue
+  document.getElementById('ctx-add-queue').addEventListener('click', () => {
+    if (_ctxSong) {
+      Player.addToQueue(_ctxSong);
+      showToast('Added to queue');
+    }
+    closeSongCtxMenu();
+  });
+
+  // Go to artist
+  document.getElementById('ctx-go-artist').addEventListener('click', () => {
+    const artistId = _ctxSong && (_ctxSong.artist_id || (_ctxSong.artist && _ctxSong.artist.id));
+    if (artistId) navigateTo('artist', artistId);
+    closeSongCtxMenu();
+  });
+
+  // Go to album
+  document.getElementById('ctx-go-album').addEventListener('click', () => {
+    const albumId = _ctxSong && _ctxSong.album_id;
+    if (albumId) navigateTo('album', albumId);
+    closeSongCtxMenu();
+  });
+
+  // Add to playlist → show sub-picker
+  document.getElementById('ctx-add-playlist').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const playlists = await API.getPlaylists().catch(() => []);
+    const list = document.getElementById('playlist-picker-list');
+    if (!playlists.length) {
+      list.innerHTML = '<div class="ctx-picker-empty">No playlists yet</div>';
+    } else {
+      list.innerHTML = playlists.map(p => `
+        <button class="ctx-item ctx-playlist-item" data-playlist-id="${p.id}">${UI._esc(p.name)}</button>`
+      ).join('');
+      list.querySelectorAll('.ctx-playlist-item').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await API.addSongToPlaylist(parseInt(btn.dataset.playlistId), _ctxSong.id);
+            showToast('Added to playlist');
+          } catch (err) {
+            showToast(err.message === 'Song already in playlist' ? 'Already in playlist' : 'Failed to add', 'error');
+          }
+          closeSongCtxMenu();
+        });
+      });
+    }
+    // Position picker next to ctx menu
+    const ctxRect = ctxMenu.getBoundingClientRect();
+    playlistPicker.style.top = `${ctxRect.top}px`;
+    playlistPicker.style.left = `${ctxRect.right + 4}px`;
+    if (parseFloat(playlistPicker.style.left) + 220 > window.innerWidth) {
+      playlistPicker.style.left = `${ctxRect.left - 224}px`;
+    }
+    playlistPicker.classList.remove('hidden');
+  });
+
   // Search
   let searchTimeout = null;
   const searchInput = document.getElementById('search-input');

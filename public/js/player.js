@@ -9,6 +9,7 @@ const Player = {
   currentSong: null,
   queue: [],
   queueIndex: 0,
+  queueSource: '',
   isShuffled: false,
   repeatMode: 'none', // 'none' | 'one' | 'all'
   isMuted: false,
@@ -44,9 +45,15 @@ const Player = {
     document.getElementById('btn-volume').addEventListener('click', () => this.toggleMute());
   },
 
-  setQueue(songs, startIndex = 0) {
+  setQueue(songs, startIndex = 0, source = '') {
     this.queue = [...songs];
     this.queueIndex = startIndex;
+    this.queueSource = source;
+  },
+
+  addToQueue(song) {
+    this.queue.push(song);
+    document.dispatchEvent(new CustomEvent('queuechanged'));
   },
 
   async play(song) {
@@ -72,7 +79,7 @@ const Player = {
 
     // Update UI
     UI.updatePlayerBar(song);
-    UI.renderNowPlaying(song);
+    UI.renderQueuePanel();
 
     // Dynamic gradient
     if (song.cover_art) {
@@ -84,6 +91,7 @@ const Player = {
     }
 
     document.dispatchEvent(new CustomEvent('songchange', { detail: song }));
+    document.dispatchEvent(new CustomEvent('queuechanged'));
   },
 
   togglePlay() {
