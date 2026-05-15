@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AudioHaven</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- LEFT SIDEBAR -->
+    <aside id="sidebar">
+      <div id="library-header">
+        <span class="library-title">Your Library</span>
+        <div id="create-btn-wrapper">
+          <button id="create-btn"><span class="plus-icon">+</span> Create</button>
+          <div id="create-dropdown" class="hidden">
+            <button class="dropdown-item" onclick="openModal('create-artist')">Create Artist</button>
+            <button class="dropdown-item" onclick="openModal('create-song')">Create Song</button>
+          </div>
+        </div>
+      </div>
+      <div id="library-filters">
+        <button class="filter-btn active" data-filter="playlists">Playlists</button>
+        <button class="filter-btn" data-filter="artists">Artists</button>
+      </div>
+      <div id="library-search-row">
+        <div class="lib-search-icon">🔍</div>
+        <span id="recents-label">Recents</span>
+      </div>
+      <div id="library-list">
+        <!-- populated by JS -->
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-content">
+      <div id="top-bar">
+        <button id="nav-home-btn" class="home-btn" onclick="navigateTo('home')">🏠</button>
+        <div id="search-container">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="What do you want to play?">
+        </div>
+      </div>
+
+      <!-- HOME VIEW -->
+      <div id="home-view" class="view active">
+        <div id="home-gradient-bg"></div>
+        <div id="recently-played-grid">
+          <!-- 8 boxes, populated by JS -->
+        </div>
+        <section id="recents-section">
+          <div class="section-header">
+            <h2>Recents</h2>
+            <button class="show-all-btn">Show all</button>
+          </div>
+          <div id="recents-list">
+            <!-- populated by JS -->
+          </div>
+        </section>
+      </div>
+
+      <!-- ARTIST VIEW -->
+      <div id="artist-view" class="view hidden">
+        <!-- populated by JS -->
+      </div>
+
+      <!-- ALBUM VIEW -->
+      <div id="album-view" class="view hidden">
+        <!-- populated by JS -->
+      </div>
+
+      <!-- SEARCH VIEW -->
+      <div id="search-view" class="view hidden">
+        <h2 class="search-title">Search Results</h2>
+        <div id="search-results"></div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL: Now Playing -->
+    <aside id="now-playing-panel">
+      <div id="now-playing-empty">
+        <p>Nothing playing yet</p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- PLAYER BAR -->
+  <div id="player-bar">
+    <div id="player-left">
+      <div id="player-cover"></div>
+      <div id="player-info">
+        <div id="player-song-name">Nothing playing....</div>
+        <div id="player-artist-name"></div>
+        <div id="player-playlist-name"></div>
+      </div>
+    </div>
+    <div id="player-center">
+      <div id="player-controls">
+        <button id="btn-shuffle" class="ctrl-btn" title="Shuffle">⇄</button>
+        <button id="btn-prev" class="ctrl-btn" title="Previous">⏮</button>
+        <button id="btn-play-pause" class="ctrl-btn play-pause-btn" title="Play/Pause">▶</button>
+        <button id="btn-next" class="ctrl-btn" title="Next">⏭</button>
+        <button id="btn-repeat" class="ctrl-btn" title="Repeat">↻</button>
+      </div>
+      <div id="player-progress-row">
+        <span id="time-current">0:00</span>
+        <div id="progress-bar-container">
+          <div id="progress-bar-fill"></div>
+          <input type="range" id="progress-slider" min="0" max="100" value="0" step="0.1">
+        </div>
+        <span id="time-total">0:00</span>
+      </div>
+    </div>
+    <div id="player-right">
+      <button class="ctrl-btn" id="btn-volume" title="Mute/Unmute">🔊</button>
+      <input type="range" id="volume-slider" min="0" max="100" value="80">
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div id="modal-overlay" class="hidden" onclick="handleOverlayClick(event)">
+    <!-- Create Artist Modal -->
+    <div id="modal-create-artist" class="modal hidden">
+      <div class="modal-header">
+        <h2>Create Artist</h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Artist Picture</label>
+          <div class="upload-area" id="artist-pic-upload-area">
+            <input type="file" id="artist-pic-input" accept="image/*">
+            <img id="artist-pic-preview" class="hidden">
+            <span id="artist-pic-placeholder">Click to upload image</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Artist Name <span class="required">*</span></label>
+          <input type="text" id="artist-name-input" placeholder="Enter artist name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-create" onclick="submitCreateArtist()">Create</button>
+      </div>
+    </div>
+
+    <!-- Create Song Modal -->
+    <div id="modal-create-song" class="modal hidden">
+      <div class="modal-header">
+        <h2>Create Song</h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Artist <span class="required">*</span></label>
+          <div class="searchable-select" id="song-artist-select-wrapper">
+            <input type="text" id="song-artist-input" placeholder="Select or type artist..." autocomplete="off">
+            <div id="song-artist-dropdown" class="select-dropdown hidden"></div>
+            <input type="hidden" id="song-artist-id">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Song File (MP3) <span class="required">*</span></label>
+          <div class="upload-area" id="song-file-upload-area">
+            <input type="file" id="song-file-input" accept=".mp3,audio/*">
+            <span id="song-file-placeholder">Click to upload MP3</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Song Name <span class="required">*</span></label>
+          <input type="text" id="song-name-input" placeholder="Enter song name">
+        </div>
+        <div class="form-group">
+          <label>Features (Optional)</label>
+          <div class="searchable-select" id="song-features-wrapper">
+            <input type="text" id="song-features-input" placeholder="Add featured artist..." autocomplete="off">
+            <div id="song-features-dropdown" class="select-dropdown hidden"></div>
+          </div>
+          <div id="song-features-tags"></div>
+        </div>
+        <div class="form-group">
+          <label>Cover Art <span class="required">*</span></label>
+          <div class="upload-area" id="cover-art-upload-area">
+            <input type="file" id="cover-art-input" accept="image/*">
+            <img id="cover-art-preview" class="hidden">
+            <span id="cover-art-placeholder">Click to upload cover art</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Year Created <span class="required">*</span></label>
+          <input type="number" id="song-year-input" placeholder="e.g. 2024" min="1900" max="2030">
+        </div>
+        <div class="form-group">
+          <label>Create in Album?</label>
+          <div class="radio-group">
+            <label><input type="radio" name="song-in-album" value="no" checked> No (Solo Single)</label>
+            <label><input type="radio" name="song-in-album" value="existing"> Add to Existing Album</label>
+            <label><input type="radio" name="song-in-album" value="new"> Create New Album</label>
+          </div>
+          <div id="album-existing-wrapper" class="hidden">
+            <div class="searchable-select">
+              <input type="text" id="song-album-input" placeholder="Select album..." autocomplete="off">
+              <div id="song-album-dropdown" class="select-dropdown hidden"></div>
+              <input type="hidden" id="song-album-id">
+            </div>
+          </div>
+          <div id="album-new-wrapper" class="hidden">
+            <input type="text" id="new-album-name-input" placeholder="New album name">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-create" onclick="submitCreateSong()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio-element"></audio>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/player.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

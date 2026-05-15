@@ -1,0 +1,385 @@
+const express = require('express');
+const multer = require('multer');
+const Database = require('better-sqlite3');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ─── Ensure directories exist ───────────────────────────────────────────────
+const dirs = [
+  './database',
+  './uploads',
+  './uploads/artists',
+  './uploads/songs',
+  './uploads/covers',
+];
+dirs.forEach(d => fs.mkdirSync(d, { recursive: true }));
+
+// ─── Database setup ──────────────────────────────────────────────────────────
+const db = new Database('./database/audiohaven.db');
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS artists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    picture TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS albums (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    cover_art TEXT,
+    year INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (artist_id) REFERENCES artists(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS songs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    album_id INTEGER,
+    name TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    cover_art TEXT,
+    features TEXT,
+    year INTEGER,
+    plays INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (artist_id) REFERENCES artists(id),
+    FOREIGN KEY (album_id) REFERENCES albums(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS play_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_id INTEGER NOT NULL,
+    played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (song_id) REFERENCES songs(id)
+  );
+`);
+
+// ─── Multer storage ──────────────────────────────────────────────────────────
+function makeStorage(dest) {
+  return multer.diskStorage({
+    destination: dest,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, Date.now() + ext);
+    },
+  });
+}
+
+const uploadArtist = multer({ storage: makeStorage('./uploads/artists') });
+const uploadSong = multer({
+  storage: makeStorage('./uploads/songs'),
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'songFile') {
+      cb(null, true);
+    } else {
+      cb(null, true);
+    }
+  },
+});
+const uploadCover = multer({ storage: makeStorage('./uploads/covers') });
+
+const uploadSongFields = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      if (file.fieldname === 'songFile') cb(null, './uploads/songs');
+      else cb(null, './uploads/covers');
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, Date.now() + '_' + file.fieldname + ext);
+    },
+  }),
+});
+
+const uploadAlbumFields = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, './uploads/covers');
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, Date.now() + '_' + file.fieldname + ext);
+    },
+  }),
+});
+
+// ─── Middleware ───────────────────────────────────────────────────────────────
+app.use(cors());
+app.use(express.json());
+app.use(express.static('./public'));
+app.use('/uploads', express.static('./uploads'));
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+function songWithArtist(song) {
+  if (!song) return null;
+  const artist = db.prepare('SELECT * FROM artists WHERE id = ?').get(song.artist_id);
+  const album = song.album_id
+    ? db.prepare('SELECT * FROM albums WHERE id = ?').get(song.album_id)
+    : null;
+  return { ...song, artist, album };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ARTIST ROUTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/artists', (req, res) => {
+  const artists = db.prepare('SELECT * FROM artists ORDER BY name ASC').all();
+  res.json(artists);
+});
+
+app.post('/api/artists', uploadArtist.single('picture'), (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  const picture = req.file ? `/uploads/artists/${req.file.filename}` : null;
+  const result = db.prepare('INSERT INTO artists (name, picture) VALUES (?, ?)').run(name, picture);
+  const artist = db.prepare('SELECT * FROM artists WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(artist);
+});
+
+app.get('/api/artists/:id', (req, res) => {
+  const artist = db.prepare('SELECT * FROM artists WHERE id = ?').get(req.params.id);
+  if (!artist) return res.status(404).json({ error: 'Artist not found' });
+  const songs = db
+    .prepare('SELECT * FROM songs WHERE artist_id = ? ORDER BY plays DESC')
+    .all(artist.id);
+  const albums = db
+    .prepare('SELECT * FROM albums WHERE artist_id = ? ORDER BY year DESC, created_at DESC')
+    .all(artist.id);
+  res.json({ ...artist, songs: songs.map(songWithArtist), albums });
+});
+
+app.delete('/api/artists/:id', (req, res) => {
+  const artist = db.prepare('SELECT * FROM artists WHERE id = ?').get(req.params.id);
+  if (!artist) return res.status(404).json({ error: 'Artist not found' });
+
+  // Delete picture file
+  if (artist.picture) {
+    const p = '.' + artist.picture;
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+
+  // Delete songs and their files
+  const songs = db.prepare('SELECT * FROM songs WHERE artist_id = ?').all(artist.id);
+  songs.forEach(song => {
+    if (song.file_path) {
+      const p = '.' + song.file_path;
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    }
+    if (song.cover_art) {
+      const p = '.' + song.cover_art;
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    }
+    db.prepare('DELETE FROM play_history WHERE song_id = ?').run(song.id);
+  });
+
+  db.prepare('DELETE FROM songs WHERE artist_id = ?').run(artist.id);
+  db.prepare('DELETE FROM albums WHERE artist_id = ?').run(artist.id);
+  db.prepare('DELETE FROM artists WHERE id = ?').run(artist.id);
+  res.json({ success: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ALBUM ROUTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/albums', (req, res) => {
+  const albums = db
+    .prepare(
+      `SELECT albums.*, artists.name AS artist_name, artists.picture AS artist_picture
+       FROM albums JOIN artists ON albums.artist_id = artists.id
+       ORDER BY albums.created_at DESC`
+    )
+    .all();
+  res.json(albums);
+});
+
+app.post('/api/albums', uploadAlbumFields.single('coverArt'), (req, res) => {
+  const { artistId, name, year } = req.body;
+  if (!artistId || !name) return res.status(400).json({ error: 'artistId and name are required' });
+  const cover_art = req.file ? `/uploads/covers/${req.file.filename}` : null;
+  const result = db
+    .prepare('INSERT INTO albums (artist_id, name, cover_art, year) VALUES (?, ?, ?, ?)')
+    .run(artistId, name, cover_art, year || null);
+  const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(album);
+});
+
+app.get('/api/albums/:id', (req, res) => {
+  const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(req.params.id);
+  if (!album) return res.status(404).json({ error: 'Album not found' });
+  const artist = db.prepare('SELECT * FROM artists WHERE id = ?').get(album.artist_id);
+  const songs = db
+    .prepare('SELECT * FROM songs WHERE album_id = ? ORDER BY created_at ASC')
+    .all(album.id);
+  res.json({ ...album, artist, songs: songs.map(songWithArtist) });
+});
+
+app.delete('/api/albums/:id', (req, res) => {
+  const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(req.params.id);
+  if (!album) return res.status(404).json({ error: 'Album not found' });
+  if (album.cover_art) {
+    const p = '.' + album.cover_art;
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+  db.prepare('UPDATE songs SET album_id = NULL WHERE album_id = ?').run(album.id);
+  db.prepare('DELETE FROM albums WHERE id = ?').run(album.id);
+  res.json({ success: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SONG ROUTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/songs', (req, res) => {
+  const songs = db
+    .prepare(
+      `SELECT songs.*, artists.name AS artist_name, artists.picture AS artist_picture
+       FROM songs JOIN artists ON songs.artist_id = artists.id
+       ORDER BY songs.created_at DESC`
+    )
+    .all();
+  res.json(songs);
+});
+
+app.post(
+  '/api/songs',
+  uploadSongFields.fields([
+    { name: 'songFile', maxCount: 1 },
+    { name: 'coverArt', maxCount: 1 },
+  ]),
+  async (req, res) => {
+    const { artistId, name, features, year, albumId, newAlbumName } = req.body;
+    if (!artistId || !name) return res.status(400).json({ error: 'artistId and name are required' });
+    if (!req.files || !req.files['songFile']) {
+      return res.status(400).json({ error: 'songFile is required' });
+    }
+
+    const file_path = `/uploads/songs/${req.files['songFile'][0].filename}`;
+    const cover_art = req.files['coverArt']
+      ? `/uploads/covers/${req.files['coverArt'][0].filename}`
+      : null;
+
+    let resolvedAlbumId = albumId && albumId !== '' ? parseInt(albumId) : null;
+
+    // Create new album if requested
+    if (newAlbumName && newAlbumName.trim()) {
+      const albumResult = db
+        .prepare('INSERT INTO albums (artist_id, name, cover_art, year) VALUES (?, ?, ?, ?)')
+        .run(artistId, newAlbumName.trim(), cover_art, year || null);
+      resolvedAlbumId = albumResult.lastInsertRowid;
+    }
+
+    const featuresStr = features || null;
+
+    const result = db
+      .prepare(
+        'INSERT INTO songs (artist_id, album_id, name, file_path, cover_art, features, year) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      )
+      .run(artistId, resolvedAlbumId, name, file_path, cover_art, featuresStr, year || null);
+
+    const song = songWithArtist(
+      db.prepare('SELECT * FROM songs WHERE id = ?').get(result.lastInsertRowid)
+    );
+    res.status(201).json(song);
+  }
+);
+
+app.get('/api/songs/:id', (req, res) => {
+  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(req.params.id);
+  if (!song) return res.status(404).json({ error: 'Song not found' });
+  res.json(songWithArtist(song));
+});
+
+app.post('/api/songs/:id/play', (req, res) => {
+  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(req.params.id);
+  if (!song) return res.status(404).json({ error: 'Song not found' });
+  db.prepare('UPDATE songs SET plays = plays + 1 WHERE id = ?').run(song.id);
+  db.prepare('INSERT INTO play_history (song_id) VALUES (?)').run(song.id);
+  const updated = db.prepare('SELECT * FROM songs WHERE id = ?').get(song.id);
+  res.json(songWithArtist(updated));
+});
+
+app.delete('/api/songs/:id', (req, res) => {
+  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(req.params.id);
+  if (!song) return res.status(404).json({ error: 'Song not found' });
+  if (song.file_path) {
+    const p = '.' + song.file_path;
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+  if (song.cover_art) {
+    const p = '.' + song.cover_art;
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+  db.prepare('DELETE FROM play_history WHERE song_id = ?').run(song.id);
+  db.prepare('DELETE FROM songs WHERE id = ?').run(song.id);
+  res.json({ success: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  HISTORY & SEARCH
+// ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/history', (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT ph.played_at, s.*, a.name AS artist_name, a.picture AS artist_picture,
+              al.name AS album_name, al.cover_art AS album_cover_art
+       FROM play_history ph
+       JOIN songs s ON ph.song_id = s.id
+       JOIN artists a ON s.artist_id = a.id
+       LEFT JOIN albums al ON s.album_id = al.id
+       ORDER BY ph.played_at DESC
+       LIMIT 50`
+    )
+    .all();
+
+  // Deduplicate by song id, keep last 20 distinct
+  const seen = new Set();
+  const distinct = [];
+  for (const row of rows) {
+    if (!seen.has(row.id)) {
+      seen.add(row.id);
+      distinct.push(row);
+    }
+    if (distinct.length >= 20) break;
+  }
+  res.json(distinct);
+});
+
+app.get('/api/search', (req, res) => {
+  const q = `%${(req.query.q || '').toLowerCase()}%`;
+  const artists = db
+    .prepare('SELECT * FROM artists WHERE LOWER(name) LIKE ?')
+    .all(q);
+  const songs = db
+    .prepare(
+      `SELECT songs.*, artists.name AS artist_name
+       FROM songs JOIN artists ON songs.artist_id = artists.id
+       WHERE LOWER(songs.name) LIKE ?`
+    )
+    .all(q);
+  const albums = db
+    .prepare(
+      `SELECT albums.*, artists.name AS artist_name
+       FROM albums JOIN artists ON albums.artist_id = artists.id
+       WHERE LOWER(albums.name) LIKE ?`
+    )
+    .all(q);
+  res.json({ artists, songs, albums });
+});
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`AudioHaven running at http://localhost:${PORT}`);
+});
