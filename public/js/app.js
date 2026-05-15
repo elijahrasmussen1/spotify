@@ -357,8 +357,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isOpen) UI.renderQueuePanel();
   });
 
-  // Fullscreen button — no-op (placeholder for future use)
-  document.getElementById('btn-fullscreen').addEventListener('click', () => {});
+  // Fullscreen button — placeholder; full-screen experience to be implemented in a future update
+  document.getElementById('btn-fullscreen').addEventListener('click', () => {
+    // TODO: implement full-screen view in a future update
+  });
 
   // Re-render queue panel when queue changes
   document.addEventListener('queuechanged', () => {

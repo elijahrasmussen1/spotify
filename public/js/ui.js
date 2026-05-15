@@ -190,7 +190,9 @@ const UI = {
     if (!song.features) return song.name;
     try {
       const arr = JSON.parse(song.features);
-      if (Array.isArray(arr) && arr.length) return `${song.name} (Feat. ${arr.join(', ')})`;
+      if (Array.isArray(arr) && arr.length) {
+        return `${song.name} (Feat. ${arr.map(f => String(f).replace(/[<>"&]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', '&': '&amp;' }[c]))).join(', ')})`;
+      }
     } catch (_) {}
     return song.name;
   },
@@ -1114,16 +1116,18 @@ const UI = {
         epArea.onclick = () => epInput.click();
         epInput.onchange = () => {
           const f = epInput.files[0];
-          if (!f) return;
+          if (!f || !f.type.startsWith('image/')) return;
           window._epCoverFile = f;
-          const blobUrl = URL.createObjectURL(f);
-          if (!blobUrl.startsWith('blob:')) return;
-          const img = document.createElement('img');
-          img.className = 'ep-cover-img';
-          img.alt = 'cover';
-          img.src = blobUrl;
-          coverDisplay.innerHTML = '';
-          coverDisplay.appendChild(img);
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = document.createElement('img');
+            img.className = 'ep-cover-img';
+            img.alt = 'cover';
+            img.src = ev.target.result; // safe data: URL from FileReader
+            coverDisplay.innerHTML = '';
+            coverDisplay.appendChild(img);
+          };
+          reader.readAsDataURL(f);
         };
       }, 20);
     });
