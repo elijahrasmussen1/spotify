@@ -1128,8 +1128,21 @@ ul { list-style: none; }
   height: 32px;
   border-radius: 50%;
   transition: color var(--transition);
+  position: relative;
 }
+.ctrl-btn svg, .home-btn svg, .btn-play-green svg, .btn-shuffle-outline svg,
+.rp-play-btn svg, .recents-card-play svg, .album-card-play svg { pointer-events: none; }
 .ctrl-btn:hover { color: var(--text-primary); }
+
+#btn-repeat.repeat-one::after {
+  content: '1';
+  font-size: 8px;
+  font-weight: 700;
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  line-height: 1;
+}
 
 .play-pause-btn {
   width: 40px;
@@ -1486,7 +1499,7 @@ input[type="range"] {
   gap: 12px;
   text-align: center;
 }
-.empty-state-icon { font-size: 3rem; }
+.empty-state-icon { display: flex; align-items: center; justify-content: center; opacity: 0.4; }
 .empty-state-text { font-size: 0.95rem; }
 
 /* ═══════════════════════════════════════════════════════════════════

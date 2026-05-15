@@ -1,4 +1,9 @@
 /* player.js – audio engine */
+
+const _SVG_PLAY  = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+const _SVG_PAUSE = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+const _SVG_REPEAT = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`;
+
 const Player = {
   audio: null,
   currentSong: null,
@@ -53,7 +58,7 @@ const Player = {
 
     try {
       await this.audio.play();
-      document.getElementById('btn-play-pause').textContent = '⏸';
+      document.getElementById('btn-play-pause').innerHTML = _SVG_PAUSE;
     } catch (e) {
       console.warn('Playback error:', e);
     }
@@ -85,10 +90,10 @@ const Player = {
     if (!this.currentSong) return;
     if (this.audio.paused) {
       this.audio.play();
-      document.getElementById('btn-play-pause').textContent = '⏸';
+      document.getElementById('btn-play-pause').innerHTML = _SVG_PAUSE;
     } else {
       this.audio.pause();
-      document.getElementById('btn-play-pause').textContent = '▶';
+      document.getElementById('btn-play-pause').innerHTML = _SVG_PLAY;
     }
   },
 
@@ -130,8 +135,9 @@ const Player = {
     const btn = document.getElementById('btn-repeat');
     btn.classList.toggle('active', this.repeatMode !== 'none');
     btn.title = `Repeat: ${this.repeatMode}`;
-    if (this.repeatMode === 'one') btn.textContent = '↻¹';
-    else btn.textContent = '↻';
+    if (this.repeatMode === 'one') btn.classList.add('repeat-one');
+    else btn.classList.remove('repeat-one');
+    btn.innerHTML = _SVG_REPEAT;
   },
 
   seek(pct) {
@@ -177,11 +183,11 @@ const Player = {
   },
 
   _onEnded() {
-    document.getElementById('btn-play-pause').textContent = '▶';
+    document.getElementById('btn-play-pause').innerHTML = _SVG_PLAY;
     if (this.repeatMode === 'one') {
       this.audio.currentTime = 0;
       this.audio.play();
-      document.getElementById('btn-play-pause').textContent = '⏸';
+      document.getElementById('btn-play-pause').innerHTML = _SVG_PAUSE;
       return;
     }
     if (this.repeatMode === 'all' || this.queueIndex < this.queue.length - 1) {

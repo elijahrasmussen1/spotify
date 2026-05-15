@@ -1,4 +1,19 @@
 /* ui.js – all DOM rendering */
+
+/* SVG icon strings used throughout rendering */
+const _ICO = {
+  music:     `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  musicSm:   `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  mic:       `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+  micSm:     `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+  disc:      `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>`,
+  discSm:    `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>`,
+  phones:    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>`,
+  play:      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
+  playMd:    `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
+  shuffle:   `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>`,
+};
+
 const UI = {
   /* ── Helpers ──────────────────────────────────────────────────────── */
   _esc(str) {
@@ -37,9 +52,9 @@ const UI = {
   _coverImg(src, cls = '', alt = '') {
     if (src) {
       return `<img src="${src}" class="${cls}" alt="${alt}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-              <div class="${cls.replace('song-cover-sm','song-cover-placeholder-sm').replace('album-card-cover','album-card-cover-placeholder').replace('recents-card-img','recents-card-placeholder').replace('rp-cover','rp-cover-placeholder').replace('np-cover','np-cover-placeholder').replace('artist-hero-img','artist-hero-placeholder').replace('album-hero-cover','album-hero-cover-placeholder')}" style="display:none">🎵</div>`;
+              <div class="${cls.replace('song-cover-sm','song-cover-placeholder-sm').replace('album-card-cover','album-card-cover-placeholder').replace('recents-card-img','recents-card-placeholder').replace('rp-cover','rp-cover-placeholder').replace('np-cover','np-cover-placeholder').replace('artist-hero-img','artist-hero-placeholder').replace('album-hero-cover','album-hero-cover-placeholder')}" style="display:none">${_ICO.music}</div>`;
     }
-    return `<div class="${cls.includes('circle') ? cls.replace(/\S+/g, m => m + (m.endsWith('img') ? '-placeholder circle' : '')) : cls.replace('song-cover-sm','song-cover-placeholder-sm').replace('album-card-cover','album-card-cover-placeholder').replace('recents-card-img','recents-card-placeholder').replace('rp-cover','rp-cover-placeholder').replace('np-cover','np-cover-placeholder').replace('artist-hero-img','artist-hero-placeholder').replace('album-hero-cover','album-hero-cover-placeholder')}">🎵</div>`;
+    return `<div class="${cls.includes('circle') ? cls.replace(/\S+/g, m => m + (m.endsWith('img') ? '-placeholder circle' : '')) : cls.replace('song-cover-sm','song-cover-placeholder-sm').replace('album-card-cover','album-card-cover-placeholder').replace('recents-card-img','recents-card-placeholder').replace('rp-cover','rp-cover-placeholder').replace('np-cover','np-cover-placeholder').replace('artist-hero-img','artist-hero-placeholder').replace('album-hero-cover','album-hero-cover-placeholder')}">${_ICO.music}</div>`;
   },
 
   /* ── Player bar ───────────────────────────────────────────────────── */
@@ -49,7 +64,7 @@ const UI = {
     if (song.cover_art) {
       coverEl.innerHTML = `<img src="${song.cover_art}" alt="cover" style="width:100%;height:100%;object-fit:cover">`;
     } else {
-      coverEl.innerHTML = '🎵';
+      coverEl.innerHTML = _ICO.music;
     }
     document.getElementById('player-song-name').textContent = this._songDisplayName(song);
     const artistName = song.artist ? song.artist.name : (song.artist_name || '');
@@ -66,7 +81,7 @@ const UI = {
     const artistName = song.artist ? song.artist.name : (song.artist_name || '');
     const coverHtml = song.cover_art
       ? `<img src="${song.cover_art}" class="np-cover" alt="cover">`
-      : `<div class="np-cover-placeholder">🎵</div>`;
+      : `<div class="np-cover-placeholder">${_ICO.music}</div>`;
 
     panel.innerHTML = `
       <div class="np-header">Now Playing</div>
@@ -117,7 +132,7 @@ const UI = {
       // Still show 8 empty placeholder boxes
       for (let i = 0; i < 8; i++) {
         container.innerHTML += `<div class="recently-played-box">
-          <div class="rp-cover-placeholder">🎵</div>
+          <div class="rp-cover-placeholder">${_ICO.music}</div>
           <span class="rp-name">Add artists...</span>
         </div>`;
       }
@@ -132,17 +147,17 @@ const UI = {
     container.innerHTML = items.map((item, i) => {
       if (!item) {
         return `<div class="recently-played-box">
-          <div class="rp-cover-placeholder">🎵</div>
+          <div class="rp-cover-placeholder">${_ICO.music}</div>
           <span class="rp-name">–</span>
         </div>`;
       }
       const coverHtml = item.picture
         ? `<img src="${item.picture}" class="rp-cover" alt="${item.name}">`
-        : `<div class="rp-cover-placeholder">🎵</div>`;
+        : `<div class="rp-cover-placeholder">${_ICO.music}</div>`;
       return `<div class="recently-played-box" data-type="${item.type}" data-id="${item.id}">
         ${coverHtml}
         <span class="rp-name">${this._esc(item.name)}</span>
-        <button class="rp-play-btn" data-type="${item.type}" data-id="${item.id}">▶</button>
+        <button class="rp-play-btn" data-type="${item.type}" data-id="${item.id}">${_ICO.play}</button>
       </div>`;
     }).join('');
 
@@ -173,7 +188,7 @@ const UI = {
     const container = document.getElementById('recents-list');
     if (!history || history.length === 0) {
       container.innerHTML = `<div class="empty-state">
-        <div class="empty-state-icon">🎵</div>
+        <div class="empty-state-icon">${_ICO.music}</div>
         <div class="empty-state-text">Nothing played yet</div>
       </div>`;
       return;
@@ -183,10 +198,10 @@ const UI = {
       const displayName = this._songDisplayName(song);
       const coverHtml = song.cover_art
         ? `<img src="${song.cover_art}" class="recents-card-img" alt="${displayName}">`
-        : `<div class="recents-card-placeholder">🎵</div>`;
+        : `<div class="recents-card-placeholder">${_ICO.music}</div>`;
       return `<div class="recents-card" data-song-id="${song.id}">
         ${coverHtml}
-        <button class="recents-card-play" data-song-id="${song.id}">▶</button>
+        <button class="recents-card-play" data-song-id="${song.id}">${_ICO.play}</button>
         <div class="recents-card-name">${displayName}</div>
         <div class="recents-card-sub">${this._esc(song.artist_name || '')}</div>
       </div>`;
@@ -224,7 +239,7 @@ const UI = {
 
     const heroImg = artist.picture
       ? `<img src="${artist.picture}" class="artist-hero-img" alt="${artist.name}">`
-      : `<div class="artist-hero-placeholder">🎤</div>`;
+      : `<div class="artist-hero-placeholder">${_ICO.mic}</div>`;
 
     const topSongs = [...songs].sort((a, b) => b.plays - a.plays).slice(0, 10);
 
@@ -232,12 +247,12 @@ const UI = {
       const displayName = this._songDisplayName(song);
       const coverHtml = song.cover_art
         ? `<img src="${song.cover_art}" class="song-cover-sm" alt="${displayName}">`
-        : `<div class="song-cover-placeholder-sm">🎵</div>`;
+        : `<div class="song-cover-placeholder-sm">${_ICO.musicSm}</div>`;
       const isCurrent = Player.currentSong && Player.currentSong.id === song.id;
       return `<div class="song-list-row" data-song-id="${song.id}">
         <div class="song-rank-cell">
-          <span class="song-rank ${isCurrent ? 'song-playing-indicator' : ''}">${isCurrent ? '▶' : i + 1}</span>
-          <span class="song-play-icon">▶</span>
+          <span class="song-rank ${isCurrent ? 'song-playing-indicator' : ''}">${isCurrent ? _ICO.play : i + 1}</span>
+          <span class="song-play-icon">${_ICO.play}</span>
         </div>
         <div class="song-title-cell">
           ${coverHtml}
@@ -254,10 +269,10 @@ const UI = {
     const albumCards = albums.map(album => {
       const coverHtml = album.cover_art
         ? `<img src="${album.cover_art}" class="album-card-cover" alt="${album.name}">`
-        : `<div class="album-card-cover-placeholder">💿</div>`;
+        : `<div class="album-card-cover-placeholder">${_ICO.disc}</div>`;
       return `<div class="album-card" data-album-id="${album.id}">
         ${coverHtml}
-        <button class="album-card-play">▶</button>
+        <button class="album-card-play">${_ICO.play}</button>
         <div class="album-card-name">${this._esc(album.name)}</div>
         <div class="album-card-sub">${this._esc(String(album.year || ''))} • Album</div>
       </div>`;
@@ -273,8 +288,8 @@ const UI = {
         </div>
       </div>
       <div class="artist-actions">
-        <button class="btn-play-green" id="artist-play-btn">▶</button>
-        <button class="btn-shuffle-outline" id="artist-shuffle-btn" title="Shuffle">⇄</button>
+        <button class="btn-play-green" id="artist-play-btn">${_ICO.playMd}</button>
+        <button class="btn-shuffle-outline" id="artist-shuffle-btn" title="Shuffle">${_ICO.shuffle}</button>
         <button class="btn-artist-create" id="artist-create-song-btn">+ Create Song</button>
       </div>
       <div class="artist-section">
@@ -282,7 +297,7 @@ const UI = {
         <div class="song-list-header">
           <span>#</span><span>Title</span><span>Plays</span><span>Duration</span>
         </div>
-        ${topSongs.length ? songRows : '<div class="empty-state"><div class="empty-state-icon">🎵</div><div class="empty-state-text">No songs yet</div></div>'}
+        ${topSongs.length ? songRows : `<div class="empty-state"><div class="empty-state-icon">${_ICO.music}</div><div class="empty-state-text">No songs yet</div></div>`}
       </div>
       ${albums.length ? `
       <div class="artist-section">
@@ -368,15 +383,15 @@ const UI = {
 
     const heroImg = album.cover_art
       ? `<img src="${album.cover_art}" class="album-hero-cover" alt="${album.name}">`
-      : `<div class="album-hero-cover-placeholder">💿</div>`;
+      : `<div class="album-hero-cover-placeholder">${_ICO.disc}</div>`;
 
     const trackRows = songs.map((song, i) => {
       const displayName = this._songDisplayName(song);
       const isCurrent = Player.currentSong && Player.currentSong.id === song.id;
       return `<div class="tracklist-row" data-song-id="${song.id}">
         <div class="track-number-cell">
-          <span class="track-number ${isCurrent ? 'song-playing-indicator' : ''}">${isCurrent ? '▶' : i + 1}</span>
-          <span class="track-play-icon">▶</span>
+          <span class="track-number ${isCurrent ? 'song-playing-indicator' : ''}">${isCurrent ? _ICO.play : i + 1}</span>
+          <span class="track-play-icon">${_ICO.play}</span>
         </div>
         <div class="track-info">
           <div class="track-name ${isCurrent ? 'song-playing-indicator' : ''}">${displayName}</div>
@@ -405,14 +420,14 @@ const UI = {
         </div>
       </div>
       <div class="album-actions">
-        <button class="btn-play-green" id="album-play-btn">▶</button>
-        <button class="btn-shuffle-outline" id="album-shuffle-btn" title="Shuffle">⇄</button>
+        <button class="btn-play-green" id="album-play-btn">${_ICO.playMd}</button>
+        <button class="btn-shuffle-outline" id="album-shuffle-btn" title="Shuffle">${_ICO.shuffle}</button>
       </div>
       <div class="album-tracklist">
         <div class="tracklist-header">
-          <span>#</span><span>Title</span><span style="text-align:right">⏱</span>
+          <span>#</span><span>Title</span><span style="text-align:right">Duration</span>
         </div>
-        ${songs.length ? trackRows : '<div class="empty-state"><div class="empty-state-icon">🎵</div><div class="empty-state-text">No songs yet</div></div>'}
+        ${songs.length ? trackRows : `<div class="empty-state"><div class="empty-state-icon">${_ICO.music}</div><div class="empty-state-text">No songs yet</div></div>`}
       </div>
       <div class="album-footer">
         ${year ? `<div>${year}</div>` : ''}
@@ -485,7 +500,7 @@ const UI = {
             <div class="search-result-card" data-type="artist" data-id="${this._esc(String(a.id))}">
               ${a.picture
                 ? `<img src="${this._esc(a.picture)}" class="search-result-img circle" alt="${this._esc(a.name)}">`
-                : `<div class="search-result-img circle" style="background:#333;display:flex;align-items:center;justify-content:center;font-size:3rem">🎤</div>`
+                : `<div class="search-result-img circle" style="background:#333;display:flex;align-items:center;justify-content:center">${_ICO.mic}</div>`
               }
               <div class="search-result-name">${this._esc(a.name)}</div>
               <div class="search-result-sub">Artist</div>
@@ -502,7 +517,7 @@ const UI = {
             <div class="search-result-card" data-type="album" data-id="${this._esc(String(al.id))}">
               ${al.cover_art
                 ? `<img src="${this._esc(al.cover_art)}" class="search-result-img" alt="${this._esc(al.name)}">`
-                : `<div class="search-result-img" style="background:#333;display:flex;align-items:center;justify-content:center;font-size:3rem">💿</div>`
+                : `<div class="search-result-img" style="background:#333;display:flex;align-items:center;justify-content:center">${_ICO.disc}</div>`
               }
               <div class="search-result-name">${this._esc(al.name)}</div>
               <div class="search-result-sub">${this._esc(String(al.year || ''))} • Album</div>
@@ -519,7 +534,7 @@ const UI = {
             <div class="search-result-card" data-type="song" data-song='${JSON.stringify(s).replace(/'/g, '&#39;')}'>
               ${s.cover_art
                 ? `<img src="${this._esc(s.cover_art)}" class="search-result-img" alt="${this._esc(s.name)}">`
-                : `<div class="search-result-img" style="background:#333;display:flex;align-items:center;justify-content:center;font-size:3rem">🎵</div>`
+                : `<div class="search-result-img" style="background:#333;display:flex;align-items:center;justify-content:center">${_ICO.music}</div>`
               }
               <div class="search-result-name">${this._songDisplayName(s)}</div>
               <div class="search-result-sub">${this._esc(s.artist_name || '')}</div>
@@ -555,7 +570,7 @@ const UI = {
       if (filter === 'artists') {
         if (!artists.length) {
           list.innerHTML = `<div class="empty-state" style="padding:20px">
-            <div class="empty-state-icon">🎤</div>
+            <div class="empty-state-icon">${_ICO.mic}</div>
             <div class="empty-state-text" style="font-size:0.82rem">No artists yet</div>
           </div>`;
           return;
@@ -564,7 +579,7 @@ const UI = {
           <div class="library-item" data-artist-id="${this._esc(String(a.id))}">
             ${a.picture
               ? `<img src="${this._esc(a.picture)}" class="library-item-img" alt="${this._esc(a.name)}">`
-              : `<div class="library-item-placeholder">🎤</div>`
+              : `<div class="library-item-placeholder">${_ICO.micSm}</div>`
             }
             <div class="library-item-info">
               <div class="library-item-name">${this._esc(a.name)}</div>
@@ -578,7 +593,7 @@ const UI = {
       } else {
         // Playlists placeholder
         list.innerHTML = `<div class="empty-state" style="padding:20px">
-          <div class="empty-state-icon">🎧</div>
+          <div class="empty-state-icon">${_ICO.phones}</div>
           <div class="empty-state-text" style="font-size:0.82rem">No playlists yet</div>
         </div>`;
       }
@@ -600,7 +615,7 @@ const UI = {
       } else {
         dropdown.innerHTML = list.map(a => `
           <div class="select-option" data-id="${this._esc(String(a.id))}" data-name="${this._esc(a.name)}">
-            ${a.picture ? `<img src="${this._esc(a.picture)}" alt="${this._esc(a.name)}">` : `<div class="select-option-placeholder">🎤</div>`}
+            ${a.picture ? `<img src="${this._esc(a.picture)}" alt="${this._esc(a.name)}">` : `<div class="select-option-placeholder">${_ICO.micSm}</div>`}
             ${this._esc(a.name)}
           </div>`).join('');
       }
@@ -634,7 +649,7 @@ const UI = {
     const renderFeatDropdown = (list) => {
       featDropdown.innerHTML = list.map(a => `
         <div class="select-option" data-name="${this._esc(a.name)}">
-          ${a.picture ? `<img src="${this._esc(a.picture)}" alt="${this._esc(a.name)}">` : `<div class="select-option-placeholder">🎤</div>`}
+          ${a.picture ? `<img src="${this._esc(a.picture)}" alt="${this._esc(a.name)}">` : `<div class="select-option-placeholder">${_ICO.micSm}</div>`}
           ${this._esc(a.name)}
         </div>`).join('');
       featDropdown.classList.remove('hidden');
@@ -698,7 +713,7 @@ const UI = {
       } else {
         albumDropdown.innerHTML = list.map(al => `
           <div class="select-option" data-id="${this._esc(String(al.id))}" data-name="${this._esc(al.name)}">
-            ${al.cover_art ? `<img src="${this._esc(al.cover_art)}" alt="${this._esc(al.name)}" style="border-radius:4px">` : `<div class="select-option-placeholder">💿</div>`}
+            ${al.cover_art ? `<img src="${this._esc(al.cover_art)}" alt="${this._esc(al.name)}" style="border-radius:4px">` : `<div class="select-option-placeholder">${_ICO.discSm}</div>`}
             ${this._esc(al.name)}
           </div>`).join('');
       }
