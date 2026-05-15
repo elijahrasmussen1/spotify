@@ -950,10 +950,12 @@ const UI = {
           const f = epInput.files[0];
           if (!f) return;
           window._epCoverFile = f;
+          const blobUrl = URL.createObjectURL(f);
+          if (!blobUrl.startsWith('blob:')) return;
           const img = document.createElement('img');
           img.className = 'ep-cover-img';
           img.alt = 'cover';
-          img.src = URL.createObjectURL(f);
+          img.src = blobUrl;
           coverDisplay.innerHTML = '';
           coverDisplay.appendChild(img);
         };
