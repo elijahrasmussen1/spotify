@@ -32,9 +32,15 @@ const Player = {
     const volSlider = document.getElementById('volume-slider');
     volSlider.value = 80;
     this.audio.volume = 0.8;
+    volSlider.style.setProperty('--vol-pct', '80%');
     volSlider.addEventListener('input', () => {
-      this.setVolume(parseInt(volSlider.value) / 100);
+      const v = parseInt(volSlider.value) / 100;
+      this.audio.muted = false;
+      this.setVolume(v);
     });
+
+    // Set initial volume icon (SVG)
+    this._updateVolumeIcon();
 
     // Controls
     document.getElementById('btn-play-pause').addEventListener('click', () => this.togglePlay());
@@ -66,6 +72,8 @@ const Player = {
     try {
       await this.audio.play();
       document.getElementById('btn-play-pause').innerHTML = _SVG_PAUSE;
+      const fsBtn = document.getElementById('fs-btn-play');
+      if (fsBtn) fsBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
     } catch (e) {
       console.warn('Playback error:', e);
     }
@@ -96,12 +104,17 @@ const Player = {
 
   togglePlay() {
     if (!this.currentSong) return;
+    const _SVG_PLAY_FS  = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+    const _SVG_PAUSE_FS = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+    const fsBtn = document.getElementById('fs-btn-play');
     if (this.audio.paused) {
       this.audio.play();
       document.getElementById('btn-play-pause').innerHTML = _SVG_PAUSE;
+      if (fsBtn) fsBtn.innerHTML = _SVG_PAUSE_FS;
     } else {
       this.audio.pause();
       document.getElementById('btn-play-pause').innerHTML = _SVG_PLAY;
+      if (fsBtn) fsBtn.innerHTML = _SVG_PLAY_FS;
     }
   },
 
@@ -156,26 +169,40 @@ const Player = {
   setVolume(v) {
     this.audio.volume = Math.max(0, Math.min(1, v));
     this.lastVolume = this.audio.volume;
-    if (this.audio.volume === 0) {
-      document.getElementById('btn-volume').textContent = '🔇';
+    this._updateVolumeIcon();
+    this._updateVolumeSlider();
+  },
+
+  _updateVolumeIcon() {
+    const btn = document.getElementById('btn-volume');
+    if (!btn) return;
+    if (this.audio.muted || this.audio.volume === 0) {
+      btn.innerHTML = _ICO.volMute;
     } else if (this.audio.volume < 0.5) {
-      document.getElementById('btn-volume').textContent = '🔉';
+      btn.innerHTML = _ICO.volLow;
     } else {
-      document.getElementById('btn-volume').textContent = '🔊';
+      btn.innerHTML = _ICO.volHigh;
     }
+  },
+
+  _updateVolumeSlider() {
+    const slider = document.getElementById('volume-slider');
+    if (!slider) return;
+    const pct = this.audio.muted ? 0 : Math.round(this.audio.volume * 100);
+    slider.value = pct;
+    slider.style.setProperty('--vol-pct', `${pct}%`);
   },
 
   toggleMute() {
     if (this.audio.muted || this.audio.volume === 0) {
       this.audio.muted = false;
       this.audio.volume = this.lastVolume || 0.8;
-      document.getElementById('volume-slider').value = Math.round(this.audio.volume * 100);
-      document.getElementById('btn-volume').textContent = '🔊';
     } else {
       this.lastVolume = this.audio.volume;
       this.audio.muted = true;
-      document.getElementById('btn-volume').textContent = '🔇';
     }
+    this._updateVolumeIcon();
+    this._updateVolumeSlider();
   },
 
   _onTimeUpdate() {
@@ -183,11 +210,16 @@ const Player = {
     const pct = (this.audio.currentTime / this.audio.duration) * 100;
     document.getElementById('progress-bar-fill').style.width = `${pct}%`;
     document.getElementById('progress-slider').value = pct;
-    document.getElementById('time-current').textContent = this._fmt(this.audio.currentTime);
+    const current = this._fmt(this.audio.currentTime);
+    const total = this._fmt(this.audio.duration);
+    document.getElementById('time-current').textContent = current;
+    document.dispatchEvent(new CustomEvent('fsprogress', { detail: { pct, current, total } }));
   },
 
   _onMetadata() {
-    document.getElementById('time-total').textContent = this._fmt(this.audio.duration);
+    const total = this._fmt(this.audio.duration);
+    document.getElementById('time-total').textContent = total;
+    document.dispatchEvent(new CustomEvent('fsprogress', { detail: { pct: 0, current: '0:00', total } }));
   },
 
   _onEnded() {

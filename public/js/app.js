@@ -357,9 +357,141 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isOpen) UI.renderQueuePanel();
   });
 
-  // Fullscreen button — placeholder; full-screen experience to be implemented in a future update
+  // ── Fullscreen view ────────────────────────────────────────────────
+  const fsOverlay = document.getElementById('fullscreen-overlay');
+  let fsIdleTimer = null;
+  let fsActive = false;
+
+  function updateFullscreen() {
+    if (!fsActive) return;
+    const song = Player.currentSong;
+    const fsArt = document.getElementById('fs-art');
+    const fsBg = document.getElementById('fs-bg');
+    const fsGrad = document.getElementById('fs-gradient');
+
+    if (song) {
+      const src = song.cover_art || '';
+      if (src) {
+        fsArt.innerHTML = `<img src="${src.replace(/"/g, '&quot;')}" alt="">`;
+        fsBg.style.backgroundImage = `url("${src.replace(/"/g, '&quot;')}")`;
+        // Apply dominant gradient
+        Player.extractDominantColor(src).then(color => {
+          if (!color) return;
+          const [r, g, b] = color.match(/\d+/g).map(Number);
+          fsGrad.style.background = `linear-gradient(to bottom, rgba(${r},${g},${b},0.25) 0%, rgba(${r},${g},${b},0.08) 40%, rgba(${r},${g},${b},0.55) 80%, rgba(0,0,0,0.92) 100%)`;
+          fsBg.style.backgroundImage = `url("${src.replace(/"/g, '&quot;')}")`;
+        });
+      } else {
+        fsArt.innerHTML = `<div class="fs-art-placeholder">${_ICO.musicMd}</div>`;
+        fsBg.style.backgroundImage = 'none';
+        fsGrad.style.background = '';
+      }
+      document.getElementById('fs-song-name').textContent = UI._rawName(song);
+      document.getElementById('fs-artist-name').textContent = song.artist_name || (song.artist && song.artist.name) || '';
+
+      // Update 3-dots button data attrs for context menu
+      const fsDotsBtn = document.getElementById('fs-dots-btn');
+      fsDotsBtn.dataset.songId = song.id || '';
+      fsDotsBtn.dataset.artistId = song.artist_id || '';
+      fsDotsBtn.dataset.albumId = song.album_id || '';
+      fsDotsBtn.dataset.inQueue = 'false';
+    } else {
+      fsArt.innerHTML = `<div class="fs-art-placeholder">${_ICO.musicMd}</div>`;
+      fsBg.style.backgroundImage = 'none';
+      document.getElementById('fs-song-name').textContent = 'Nothing playing';
+      document.getElementById('fs-artist-name').textContent = '';
+    }
+
+    // Sync play/pause state
+    const fsPlayBtn = document.getElementById('fs-btn-play');
+    if (Player.audio && !Player.audio.paused) {
+      fsPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+    } else {
+      fsPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+    }
+    // Sync shuffle
+    document.getElementById('fs-btn-shuffle').classList.toggle('active', Player.isShuffled);
+    // Sync repeat
+    document.getElementById('fs-btn-repeat').classList.toggle('active', Player.repeatMode !== 'none');
+  }
+
+  function resetFsIdleTimer() {
+    clearTimeout(fsIdleTimer);
+    fsOverlay.classList.remove('controls-hidden');
+    if (fsActive) {
+      fsIdleTimer = setTimeout(() => {
+        if (fsActive) fsOverlay.classList.add('controls-hidden');
+      }, 5000);
+    }
+  }
+
+  function openFullscreen() {
+    fsActive = true;
+    fsOverlay.classList.remove('hidden');
+    document.getElementById('btn-fullscreen').classList.add('active');
+    updateFullscreen();
+    resetFsIdleTimer();
+  }
+
+  function closeFullscreen() {
+    fsActive = false;
+    clearTimeout(fsIdleTimer);
+    fsOverlay.classList.add('hidden');
+    fsOverlay.classList.remove('controls-hidden');
+    document.getElementById('btn-fullscreen').classList.remove('active');
+  }
+
   document.getElementById('btn-fullscreen').addEventListener('click', () => {
-    // TODO: implement full-screen view in a future update
+    if (fsActive) closeFullscreen();
+    else openFullscreen();
+  });
+
+  document.getElementById('fs-exit-btn').addEventListener('click', closeFullscreen);
+
+  fsOverlay.addEventListener('mousemove', resetFsIdleTimer);
+  fsOverlay.addEventListener('click', resetFsIdleTimer);
+
+  // Fullscreen controls
+  document.getElementById('fs-btn-play').addEventListener('click', () => {
+    Player.togglePlay();
+    updateFullscreen();
+  });
+  document.getElementById('fs-btn-prev').addEventListener('click', () => Player.prev());
+  document.getElementById('fs-btn-next').addEventListener('click', () => Player.next());
+  document.getElementById('fs-btn-shuffle').addEventListener('click', () => {
+    Player.toggleShuffle();
+    document.getElementById('fs-btn-shuffle').classList.toggle('active', Player.isShuffled);
+  });
+  document.getElementById('fs-btn-repeat').addEventListener('click', () => {
+    Player.cycleRepeat();
+    document.getElementById('fs-btn-repeat').classList.toggle('active', Player.repeatMode !== 'none');
+  });
+
+  // Fullscreen progress slider
+  const fsSlider = document.getElementById('fs-progress-slider');
+  fsSlider.addEventListener('input', () => Player.seek(parseFloat(fsSlider.value)));
+
+  // Sync progress in fullscreen
+  document.addEventListener('fsprogress', (e) => {
+    if (!fsActive) return;
+    const { pct, current, total } = e.detail;
+    document.getElementById('fs-progress-fill').style.width = `${pct}%`;
+    fsSlider.value = pct;
+    document.getElementById('fs-time-current').textContent = current;
+    document.getElementById('fs-time-total').textContent = total;
+  });
+
+  // Update fullscreen when song changes
+  document.addEventListener('songchange', () => {
+    if (fsActive) updateFullscreen();
+  });
+
+  // ESC exits fullscreen
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (fsActive) { closeFullscreen(); return; }
+      closeSongCtxMenu();
+    }
   });
 
   // Re-render queue panel when queue changes
@@ -420,9 +552,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSongCtxMenu();
-  });
+  // (ESC handler consolidated in fullscreen block above)
 
   // Add to queue
   document.getElementById('ctx-add-queue').addEventListener('click', () => {
