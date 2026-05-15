@@ -1,15 +1,24 @@
 /* ui.js – all DOM rendering */
 const UI = {
   /* ── Helpers ──────────────────────────────────────────────────────── */
+  _esc(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
   _songDisplayName(song) {
-    if (!song.features) return song.name;
+    if (!song.features) return this._esc(song.name);
     try {
       const feats = JSON.parse(song.features);
       if (Array.isArray(feats) && feats.length > 0) {
-        return `${song.name} (Feat. ${feats.join(', ')})`;
+        return `${this._esc(song.name)} (Feat. ${feats.map(f => this._esc(f)).join(', ')})`;
       }
     } catch (_) {}
-    return song.name;
+    return this._esc(song.name);
   },
 
   _fmt(secs) {
@@ -64,7 +73,7 @@ const UI = {
       <div class="np-cover-wrapper">${coverHtml}</div>
       <div class="np-info">
         <div class="np-song-name">${this._songDisplayName(song)}</div>
-        <div class="np-artist-name">${artistName}</div>
+        <div class="np-artist-name">${this._esc(artistName)}</div>
       </div>
     `;
   },
@@ -132,7 +141,7 @@ const UI = {
         : `<div class="rp-cover-placeholder">🎵</div>`;
       return `<div class="recently-played-box" data-type="${item.type}" data-id="${item.id}">
         ${coverHtml}
-        <span class="rp-name">${item.name}</span>
+        <span class="rp-name">${this._esc(item.name)}</span>
         <button class="rp-play-btn" data-type="${item.type}" data-id="${item.id}">▶</button>
       </div>`;
     }).join('');
@@ -179,7 +188,7 @@ const UI = {
         ${coverHtml}
         <button class="recents-card-play" data-song-id="${song.id}">▶</button>
         <div class="recents-card-name">${displayName}</div>
-        <div class="recents-card-sub">${song.artist_name || ''}</div>
+        <div class="recents-card-sub">${this._esc(song.artist_name || '')}</div>
       </div>`;
     }).join('');
 
@@ -234,7 +243,7 @@ const UI = {
           ${coverHtml}
           <div>
             <div class="song-name-text ${isCurrent ? 'song-playing-indicator' : ''}">${displayName}</div>
-            <div class="song-artist-text">${song.artist ? song.artist.name : artist.name}</div>
+            <div class="song-artist-text">${this._esc(song.artist ? song.artist.name : artist.name)}</div>
           </div>
         </div>
         <div class="song-plays">${this._fmtPlays(song.plays)}</div>
@@ -249,8 +258,8 @@ const UI = {
       return `<div class="album-card" data-album-id="${album.id}">
         ${coverHtml}
         <button class="album-card-play">▶</button>
-        <div class="album-card-name">${album.name}</div>
-        <div class="album-card-sub">${album.year || ''} • Album</div>
+        <div class="album-card-name">${this._esc(album.name)}</div>
+        <div class="album-card-sub">${this._esc(String(album.year || ''))} • Album</div>
       </div>`;
     }).join('');
 
@@ -260,7 +269,7 @@ const UI = {
         ${heroImg}
         <div class="artist-hero-info">
           <div class="artist-hero-type">Artist</div>
-          <h1 class="artist-hero-name">${artist.name}</h1>
+          <h1 class="artist-hero-name">${this._esc(artist.name)}</h1>
         </div>
       </div>
       <div class="artist-actions">
@@ -371,7 +380,7 @@ const UI = {
         </div>
         <div class="track-info">
           <div class="track-name ${isCurrent ? 'song-playing-indicator' : ''}">${displayName}</div>
-          <div class="track-artist">${song.artist ? song.artist.name : artist.name || ''}</div>
+          <div class="track-artist">${this._esc(song.artist ? song.artist.name : (artist.name || ''))}</div>
         </div>
         <div class="track-duration">--:--</div>
       </div>`;
@@ -387,9 +396,9 @@ const UI = {
         ${heroImg}
         <div class="album-hero-info">
           <div class="album-hero-type">${type}</div>
-          <h1 class="album-hero-title">${album.name}</h1>
+          <h1 class="album-hero-title">${this._esc(album.name)}</h1>
           <div class="album-hero-meta">
-            <span class="artist-link" data-artist-id="${artist.id}">${artist.name || ''}</span>
+            <span class="artist-link" data-artist-id="${this._esc(String(artist.id || ''))}">${this._esc(artist.name || '')}</span>
             ${year ? `<span class="dot">•</span><span>${year}</span>` : ''}
             ${songCount ? `<span class="dot">•</span><span>${songCount} song${songCount !== 1 ? 's' : ''}</span>` : ''}
           </div>
@@ -407,7 +416,7 @@ const UI = {
       </div>
       <div class="album-footer">
         ${year ? `<div>${year}</div>` : ''}
-        ${artist.name ? `<div>© ${year || new Date().getFullYear()} ${artist.name}</div>` : ''}
+        ${artist.name ? `<div>© ${this._esc(String(year || new Date().getFullYear()))} ${this._esc(artist.name)}</div>` : ''}
       </div>
     `;
 
@@ -473,12 +482,12 @@ const UI = {
         <div class="search-category-title">Artists</div>
         <div class="search-results-grid">
           ${artists.map(a => `
-            <div class="search-result-card" data-type="artist" data-id="${a.id}">
+            <div class="search-result-card" data-type="artist" data-id="${this._esc(String(a.id))}">
               ${a.picture
-                ? `<img src="${a.picture}" class="search-result-img circle" alt="${a.name}">`
+                ? `<img src="${this._esc(a.picture)}" class="search-result-img circle" alt="${this._esc(a.name)}">`
                 : `<div class="search-result-img circle" style="background:#333;display:flex;align-items:center;justify-content:center;font-size:3rem">🎤</div>`
               }
-              <div class="search-result-name">${a.name}</div>
+              <div class="search-result-name">${this._esc(a.name)}</div>
               <div class="search-result-sub">Artist</div>
             </div>`).join('')}
         </div>
@@ -490,13 +499,13 @@ const UI = {
         <div class="search-category-title">Albums</div>
         <div class="search-results-grid">
           ${albums.map(al => `
-            <div class="search-result-card" data-type="album" data-id="${al.id}">
+            <div class="search-result-card" data-type="album" data-id="${this._esc(String(al.id))}">
               ${al.cover_art
-                ? `<img src="${al.cover_art}" class="search-result-img" alt="${al.name}">`
+                ? `<img src="${this._esc(al.cover_art)}" class="search-result-img" alt="${this._esc(al.name)}">`
                 : `<div class="search-result-img" style="background:#333;display:flex;align-items:center;justify-content:center;font-size:3rem">💿</div>`
               }
-              <div class="search-result-name">${al.name}</div>
-              <div class="search-result-sub">${al.year || ''} • Album</div>
+              <div class="search-result-name">${this._esc(al.name)}</div>
+              <div class="search-result-sub">${this._esc(String(al.year || ''))} • Album</div>
             </div>`).join('')}
         </div>
       </div>`;
@@ -507,13 +516,13 @@ const UI = {
         <div class="search-category-title">Songs</div>
         <div class="search-results-grid">
           ${songs.map(s => `
-            <div class="search-result-card" data-type="song" data-song='${JSON.stringify(s).replace(/'/g, "&#39;")}'>
+            <div class="search-result-card" data-type="song" data-song='${JSON.stringify(s).replace(/'/g, '&#39;')}'>
               ${s.cover_art
-                ? `<img src="${s.cover_art}" class="search-result-img" alt="${s.name}">`
+                ? `<img src="${this._esc(s.cover_art)}" class="search-result-img" alt="${this._esc(s.name)}">`
                 : `<div class="search-result-img" style="background:#333;display:flex;align-items:center;justify-content:center;font-size:3rem">🎵</div>`
               }
               <div class="search-result-name">${this._songDisplayName(s)}</div>
-              <div class="search-result-sub">${s.artist_name || ''}</div>
+              <div class="search-result-sub">${this._esc(s.artist_name || '')}</div>
             </div>`).join('')}
         </div>
       </div>`;
@@ -552,13 +561,13 @@ const UI = {
           return;
         }
         list.innerHTML = artists.map(a => `
-          <div class="library-item" data-artist-id="${a.id}">
+          <div class="library-item" data-artist-id="${this._esc(String(a.id))}">
             ${a.picture
-              ? `<img src="${a.picture}" class="library-item-img" alt="${a.name}">`
+              ? `<img src="${this._esc(a.picture)}" class="library-item-img" alt="${this._esc(a.name)}">`
               : `<div class="library-item-placeholder">🎤</div>`
             }
             <div class="library-item-info">
-              <div class="library-item-name">${a.name}</div>
+              <div class="library-item-name">${this._esc(a.name)}</div>
               <div class="library-item-sub">Artist</div>
             </div>
           </div>`).join('');
@@ -590,9 +599,9 @@ const UI = {
         dropdown.innerHTML = '<div class="select-option" style="color:#888">No artists found</div>';
       } else {
         dropdown.innerHTML = list.map(a => `
-          <div class="select-option" data-id="${a.id}" data-name="${a.name}">
-            ${a.picture ? `<img src="${a.picture}" alt="${a.name}">` : `<div class="select-option-placeholder">🎤</div>`}
-            ${a.name}
+          <div class="select-option" data-id="${this._esc(String(a.id))}" data-name="${this._esc(a.name)}">
+            ${a.picture ? `<img src="${this._esc(a.picture)}" alt="${this._esc(a.name)}">` : `<div class="select-option-placeholder">🎤</div>`}
+            ${this._esc(a.name)}
           </div>`).join('');
       }
       dropdown.classList.remove('hidden');
@@ -624,9 +633,9 @@ const UI = {
 
     const renderFeatDropdown = (list) => {
       featDropdown.innerHTML = list.map(a => `
-        <div class="select-option" data-name="${a.name}">
-          ${a.picture ? `<img src="${a.picture}" alt="${a.name}">` : `<div class="select-option-placeholder">🎤</div>`}
-          ${a.name}
+        <div class="select-option" data-name="${this._esc(a.name)}">
+          ${a.picture ? `<img src="${this._esc(a.picture)}" alt="${this._esc(a.name)}">` : `<div class="select-option-placeholder">🎤</div>`}
+          ${this._esc(a.name)}
         </div>`).join('');
       featDropdown.classList.remove('hidden');
       featDropdown.querySelectorAll('.select-option').forEach(opt => {
@@ -645,7 +654,7 @@ const UI = {
     const renderTags = () => {
       tagsContainer.innerHTML = selectedFeatures.map((name, i) => `
         <div class="feature-tag">
-          ${name}
+          ${UI._esc(name)}
           <span class="feature-tag-remove" data-index="${i}">✕</span>
         </div>`).join('');
       tagsContainer.querySelectorAll('.feature-tag-remove').forEach(btn => {
@@ -667,7 +676,6 @@ const UI = {
       if (!e.target.closest('#song-features-wrapper')) featDropdown.classList.add('hidden');
     });
 
-    window._selectedFeatures = [];
     window._selectedFeatures = selectedFeatures;
   },
 
@@ -689,9 +697,9 @@ const UI = {
         albumDropdown.innerHTML = '<div class="select-option" style="color:#888">No albums found</div>';
       } else {
         albumDropdown.innerHTML = list.map(al => `
-          <div class="select-option" data-id="${al.id}" data-name="${al.name}">
-            ${al.cover_art ? `<img src="${al.cover_art}" alt="${al.name}" style="border-radius:4px">` : `<div class="select-option-placeholder">💿</div>`}
-            ${al.name}
+          <div class="select-option" data-id="${this._esc(String(al.id))}" data-name="${this._esc(al.name)}">
+            ${al.cover_art ? `<img src="${this._esc(al.cover_art)}" alt="${this._esc(al.name)}" style="border-radius:4px">` : `<div class="select-option-placeholder">💿</div>`}
+            ${this._esc(al.name)}
           </div>`).join('');
       }
       albumDropdown.classList.remove('hidden');

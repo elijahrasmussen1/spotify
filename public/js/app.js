@@ -132,7 +132,10 @@ function setupImagePreview(inputId, previewId, placeholderId) {
     const file = input.files[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
-    preview.src = url;
+    // createObjectURL always returns a blob: URL — safe to assign to src
+    if (url.startsWith('blob:')) {
+      preview.src = url;
+    }
     preview.classList.remove('hidden');
     if (placeholder) placeholder.classList.add('hidden');
   });

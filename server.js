@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const Database = require('better-sqlite3');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 
@@ -75,18 +76,25 @@ function makeStorage(dest) {
   });
 }
 
-const uploadArtist = multer({ storage: makeStorage('./uploads/artists') });
-const uploadSong = multer({
-  storage: makeStorage('./uploads/songs'),
+const uploadArtist = multer({
+  storage: makeStorage('./uploads/artists'),
   fileFilter: (req, file, cb) => {
-    if (file.fieldname === 'songFile') {
-      cb(null, true);
-    } else {
-      cb(null, true);
-    }
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_IMAGE.has(ext)) return cb(new Error('Invalid image file type'));
+    cb(null, true);
   },
 });
-const uploadCover = multer({ storage: makeStorage('./uploads/covers') });
+const uploadCover = multer({
+  storage: makeStorage('./uploads/covers'),
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_IMAGE.has(ext)) return cb(new Error('Invalid image file type'));
+    cb(null, true);
+  },
+});
+
+const ALLOWED_AUDIO = new Set(['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']);
+const ALLOWED_IMAGE = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
 
 const uploadSongFields = multer({
   storage: multer.diskStorage({
@@ -95,10 +103,20 @@ const uploadSongFields = multer({
       else cb(null, './uploads/covers');
     },
     filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
+      const ext = path.extname(file.originalname).toLowerCase();
       cb(null, Date.now() + '_' + file.fieldname + ext);
     },
   }),
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (file.fieldname === 'songFile' && !ALLOWED_AUDIO.has(ext)) {
+      return cb(new Error('Invalid audio file type'));
+    }
+    if (file.fieldname === 'coverArt' && !ALLOWED_IMAGE.has(ext)) {
+      return cb(new Error('Invalid image file type'));
+    }
+    cb(null, true);
+  },
 });
 
 const uploadAlbumFields = multer({
@@ -118,6 +136,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('./public'));
 app.use('/uploads', express.static('./uploads'));
+
+// Rate limiting: 200 requests per 15 minutes per IP
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+app.use('/api/', apiLimiter);
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 function songWithArtist(song) {
