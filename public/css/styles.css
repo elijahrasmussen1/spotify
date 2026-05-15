@@ -2337,10 +2337,12 @@ input[type="range"] {
   flex-direction: column;
   overflow: hidden;
   cursor: default;
+  /* Solid fallback — prevents the blurred bg from bleeding transparent at corners */
   background: #000;
 }
 #fullscreen-overlay.hidden { display: none !important; }
 #fullscreen-overlay.controls-hidden { cursor: none; }
+/* Only fade top-bar and playback controls; #fs-info (song name/artist) stays always visible */
 #fullscreen-overlay.controls-hidden #fs-topbar,
 #fullscreen-overlay.controls-hidden #fs-controls { opacity: 0; pointer-events: none; }
 #fullscreen-overlay.controls-hidden #fs-topbar { pointer-events: none; }

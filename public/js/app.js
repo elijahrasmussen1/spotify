@@ -306,7 +306,8 @@ async function submitEditPlaylist() {
 document.addEventListener('DOMContentLoaded', async () => {
   Player.init();
 
-  // Recents list: allow horizontal scroll via mouse wheel (no visible scrollbar)
+  // Recents list: translate vertical wheel scroll to horizontal — passive:false
+  // required so we can call preventDefault() and prevent the page from scrolling
   const recentsList = document.getElementById('recents-list');
   if (recentsList) {
     recentsList.addEventListener('wheel', (e) => {
