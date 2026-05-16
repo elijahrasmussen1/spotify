@@ -85,6 +85,9 @@ const API = {
   getHistory() {
     return this._fetch('/api/history');
   },
+  getTopSongs() {
+    return this._fetch('/api/top-songs');
+  },
   search(q) {
     return this._fetch(`/api/search?q=${encodeURIComponent(q)}`);
   },

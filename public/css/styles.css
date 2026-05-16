@@ -476,6 +476,106 @@ ul { list-style: none; }
 .recents-card-play:hover { background: var(--accent-hover); transform: scale(1.07) !important; }
 
 /* ═══════════════════════════════════════════════════════════════════
+   MOST REPLAYED SECTION
+   ═══════════════════════════════════════════════════════════════════ */
+#most-replayed-section {
+  position: relative;
+  z-index: 1;
+  padding: 0 16px 32px;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.most-replayed-subtitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#most-replayed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mr-list-header {
+  display: grid;
+  grid-template-columns: 48px 1fr 80px;
+  gap: 8px;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.mr-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 80px;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.mr-row:hover { background: rgba(255,255,255,0.07); }
+.mr-row:hover .mr-rank { opacity: 0; }
+.mr-row:hover .mr-play-icon { opacity: 1; }
+
+.mr-rank-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mr-rank {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: center;
+  transition: opacity 0.15s;
+  min-width: 32px;
+}
+.mr-rank.rank-1 { color: #FFD700; font-size: 1.1rem; }
+.mr-rank.rank-2 { color: #C0C0C0; font-size: 1.05rem; }
+.mr-rank.rank-3 { color: #CD7F32; font-size: 1rem; }
+
+.mr-play-icon {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mr-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.mr-plays {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    ARTIST VIEW
    ═══════════════════════════════════════════════════════════════════ */
 #artist-view { background: var(--bg-base); }

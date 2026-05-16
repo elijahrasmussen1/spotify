@@ -676,8 +676,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('songPlayed', () => {
     if (currentView === 'home') {
       UI.renderHomeView();
+    } else {
+      // Refresh just the Most Replayed chart in the background so it's fresh when user returns
+      API.getTopSongs().then(songs => UI.renderMostReplayed(songs)).catch(() => {});
     }
   });
+
+  // Refresh Most Replayed every hour regardless of activity
+  setInterval(() => {
+    API.getTopSongs().then(songs => UI.renderMostReplayed(songs)).catch(() => {});
+  }, 60 * 60 * 1000);
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {

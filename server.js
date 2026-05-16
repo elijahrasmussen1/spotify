@@ -405,6 +405,20 @@ app.get('/api/history', (req, res) => {
   res.json(distinct);
 });
 
+app.get('/api/top-songs', (req, res) => {
+  const songs = db
+    .prepare(
+      `SELECT songs.*, artists.name AS artist_name, artists.picture AS artist_picture
+       FROM songs JOIN artists ON songs.artist_id = artists.id
+       WHERE songs.plays > 0
+       ORDER BY songs.plays DESC
+       LIMIT 10`
+    )
+    .all();
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json(songs);
+});
+
 app.get('/api/search', (req, res) => {
   const q = `%${(req.query.q || '').toLowerCase()}%`;
   const artists = db

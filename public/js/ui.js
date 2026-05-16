@@ -261,12 +261,14 @@ const UI = {
 
   /* ── Home View ────────────────────────────────────────────────────── */
   async renderHomeView() {
-    const [history, artists] = await Promise.all([
+    const [history, artists, topSongs] = await Promise.all([
       API.getHistory().catch(() => []),
       API.getArtists().catch(() => []),
+      API.getTopSongs().catch(() => []),
     ]);
     this.renderRecentlyPlayedGrid(history, artists);
     this.renderRecents(history);
+    this.renderMostReplayed(topSongs);
   },
 
   renderRecentlyPlayedGrid(history, artists) {
@@ -391,6 +393,61 @@ const UI = {
         const song = history.find(s => String(s.id) === songId);
         if (song) {
           Player.setQueue(history, history.indexOf(song));
+          Player.play(song);
+        }
+      });
+    });
+  },
+
+  renderMostReplayed(songs) {
+    const container = document.getElementById('most-replayed-list');
+    if (!songs || songs.length === 0) {
+      container.innerHTML = `<div class="empty-state" style="padding:24px 0">
+        <div class="empty-state-icon">${_ICO.music}</div>
+        <div class="empty-state-text">No plays yet</div>
+      </div>`;
+      return;
+    }
+
+    songs.forEach(s => this._registerSong(s));
+
+    const header = `<div class="mr-list-header">
+      <span>#</span><span>Title</span><span style="text-align:right">Plays</span>
+    </div>`;
+
+    const rows = songs.map((song, i) => {
+      const rank = i + 1;
+      const displayName = this._songDisplayName(song);
+      const coverHtml = song.cover_art
+        ? `<img src="${song.cover_art}" class="song-cover-sm" alt="${this._esc(song.name)}">`
+        : `<div class="song-cover-placeholder-sm">${_ICO.musicSm}</div>`;
+      const isCurrent = Player.currentSong && Player.currentSong.id === song.id;
+      const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+      const rankLabel = isCurrent ? _ICO.play : `#${rank}`;
+      return `<div class="mr-row" data-song-id="${song.id}">
+        <div class="mr-rank-cell">
+          <span class="mr-rank${rankClass} ${isCurrent ? 'song-playing-indicator' : ''}">${rankLabel}</span>
+          <span class="mr-play-icon">${_ICO.play}</span>
+        </div>
+        <div class="mr-title-cell">
+          ${coverHtml}
+          <div>
+            <div class="song-name-text ${isCurrent ? 'song-playing-indicator' : ''}">${displayName}</div>
+            <div class="song-artist-text">${this._esc(song.artist_name || '')}</div>
+          </div>
+        </div>
+        <div class="mr-plays">${this._fmtPlays(song.plays)}</div>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = header + rows;
+
+    container.querySelectorAll('.mr-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const songId = parseInt(row.dataset.songId);
+        const song = songs.find(s => s.id === songId);
+        if (song) {
+          Player.setQueue(songs, songs.indexOf(song), 'Most Replayed');
           Player.play(song);
         }
       });
