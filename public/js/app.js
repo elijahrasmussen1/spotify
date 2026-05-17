@@ -303,6 +303,8 @@ async function submitEditPlaylist() {
 }
 
 // ─── DOMContentLoaded ─────────────────────────────────────────────────────────
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
 document.addEventListener('DOMContentLoaded', async () => {
   Player.init();
 
@@ -685,7 +687,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Refresh Most Replayed every hour regardless of activity
   setInterval(() => {
     API.getTopSongs().then(songs => UI.renderMostReplayed(songs)).catch(() => {});
-  }, 60 * 60 * 1000);
+  }, ONE_HOUR_MS);
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {

@@ -8,6 +8,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const TOP_SONGS_CACHE_SECONDS = 3600;
 
 // ─── Ensure directories exist ───────────────────────────────────────────────
 const dirs = [
@@ -415,7 +416,7 @@ app.get('/api/top-songs', (req, res) => {
        LIMIT 10`
     )
     .all();
-  res.set('Cache-Control', 'public, max-age=3600');
+  res.set('Cache-Control', `public, max-age=${TOP_SONGS_CACHE_SECONDS}`);
   res.json(songs);
 });
 
