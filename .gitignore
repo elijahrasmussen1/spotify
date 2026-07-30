@@ -1,0 +1,14 @@
+node_modules/
+database/
+uploads/artists/*.jpg
+uploads/artists/*.png
+uploads/artists/*.jpeg
+uploads/artists/*.webp
+uploads/songs/*.mp3
+uploads/covers/*.jpg
+uploads/covers/*.png
+uploads/covers/*.jpeg
+uploads/covers/*.webp
+*.db
+*.db-shm
+*.db-wal
